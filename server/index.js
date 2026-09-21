@@ -3,7 +3,10 @@ import cors from 'cors';
 import testCasesRouter from './routes/test-cases.js';
 import suitesRouter from './routes/suites.js';
 import bugsRouter from './routes/bugs.js';
-import { seedTestCases, seedSuites, seedBugs } from './seed.js';
+import testRunsRouter from './routes/test-runs.js';
+import dashboardRouter from './routes/dashboard.js';
+import reportsRouter from './routes/reports.js';
+import { seedTestCases, seedSuites, seedBugs, seedTestRuns, seedReports } from './seed.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,10 +27,15 @@ app.get('/api/hello', (req, res) => {
 app.use('/api/test-cases', testCasesRouter);
 app.use('/api/suites', suitesRouter);
 app.use('/api/bugs', bugsRouter);
+app.use('/api/test-runs', testRunsRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/reports', reportsRouter);
 
 seedTestCases();
 seedSuites();
 seedBugs();
+seedTestRuns();
+seedReports();
 
 // General error handler — must be defined last, and must have exactly four
 // parameters (err, req, res, next) for Express to recognize it as one.

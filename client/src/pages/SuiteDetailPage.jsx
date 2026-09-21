@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { fetchSuite, addSuiteCase, removeSuiteCase, reorderSuiteCases } from '../api/suites-api.js';
 import { fetchTestCases } from '../api/test-cases-api.js';
+import { createRun } from '../api/test-runs-api.js';
 import SeverityBadge from '../components/SeverityBadge.jsx';
 import PriorityBadge from '../components/PriorityBadge.jsx';
 import SuiteStatusBadge from '../components/SuiteStatusBadge.jsx';
 
 function SuiteDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [suite, setSuite] = useState(null);
   const [allTestCases, setAllTestCases] = useState([]);
   const [selectedCaseId, setSelectedCaseId] = useState('');
@@ -68,6 +70,16 @@ function SuiteDetailPage() {
     e.preventDefault();
   }
 
+  async function handleNewRun() {
+    setActionError(null);
+    try {
+      const run = await createRun(Number(id));
+      navigate(`/test-runs/${run.id}`);
+    } catch (err) {
+      setActionError(err.message);
+    }
+  }
+
   async function handleDrop(dropIndex) {
     if (dragIndex === null || dragIndex === dropIndex) {
       setDragIndex(null);
@@ -108,6 +120,9 @@ function SuiteDetailPage() {
             Feature: <strong>{suite.feature}</strong> &nbsp;·&nbsp; Status: <SuiteStatusBadge value={suite.status} />
           </p>
         </div>
+        <button className="primary" onClick={handleNewRun}>
+          + New Run
+        </button>
       </div>
 
       {actionError && <p className="error-banner">{actionError}</p>}

@@ -72,4 +72,46 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS test_runs_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    suite_id INTEGER NOT NULL REFERENCES suites(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'in-progress',
+    pass_count INTEGER NOT NULL DEFAULT 0,
+    fail_count INTEGER NOT NULL DEFAULT 0,
+    skip_count INTEGER NOT NULL DEFAULT 0,
+    start_time TEXT NOT NULL,
+    end_time TEXT,
+    created_by TEXT
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS test_run_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES test_runs_v2(id) ON DELETE CASCADE,
+    test_case_id INTEGER NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
+    result TEXT,
+    duration_ms INTEGER,
+    notes TEXT,
+    failed_at TEXT,
+    alert_sent INTEGER NOT NULL DEFAULT 0
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES test_runs_v2(id) ON DELETE CASCADE,
+    suite_name TEXT NOT NULL,
+    run_date TEXT NOT NULL,
+    total_count INTEGER NOT NULL,
+    passed_count INTEGER NOT NULL,
+    failed_count INTEGER NOT NULL,
+    skipped_count INTEGER NOT NULL,
+    results TEXT NOT NULL,
+    generated_at TEXT NOT NULL
+  )
+`);
+
 export default db;

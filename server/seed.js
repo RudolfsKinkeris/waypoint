@@ -269,3 +269,115 @@ export function seedBugs() {
     });
   });
 }
+
+export function seedTestRuns() {
+  const { count } = db.prepare('SELECT COUNT(*) AS count FROM test_runs_v2').get();
+  if (count > 0) return;
+
+  const suite = db.prepare('SELECT id FROM suites WHERE name = ?').get('Login Regression Suite');
+  if (!suite) return;
+
+  const caseLinks = db
+    .prepare('SELECT test_case_id FROM suite_test_cases WHERE suite_id = ? ORDER BY sort_order ASC')
+    .all(suite.id);
+  if (caseLinks.length === 0) return;
+
+  const now = Date.now();
+  const startTime = new Date(now - 2 * 3600 * 1000).toISOString();
+  const endTime = new Date(now - 1 * 3600 * 1000).toISOString();
+
+  const outcomes = ['passed', 'failed', 'skipped'];
+  const notesByOutcome = {
+    passed: null,
+    failed: 'Login redirected to the Main page, but the username was not shown in the top right corner.',
+    skipped: 'Skipped — not exercised in this run.',
+  };
+
+  let passCount = 0;
+  let failCount = 0;
+  let skipCount = 0;
+  caseLinks.forEach((_, i) => {
+    const outcome = outcomes[i % outcomes.length];
+    if (outcome === 'passed') passCount++;
+    if (outcome === 'failed') failCount++;
+    if (outcome === 'skipped') skipCount++;
+  });
+
+  const runResult = db
+    .prepare(`
+      INSERT INTO test_runs_v2 (suite_id, status, pass_count, fail_count, skip_count, start_time, end_time, created_by)
+      VALUES (@suite_id, 'completed', @pass_count, @fail_count, @skip_count, @start_time, @end_time, @created_by)
+    `)
+    .run({
+      suite_id: suite.id,
+      pass_count: passCount,
+      fail_count: failCount,
+      skip_count: skipCount,
+      start_time: startTime,
+      end_time: endTime,
+      created_by: 'seed',
+    });
+
+  const runId = runResult.lastInsertRowid;
+  const insertResultStmt = db.prepare(`
+    INSERT INTO test_run_results (run_id, test_case_id, result, duration_ms, notes, failed_at, alert_sent)
+    VALUES (@run_id, @test_case_id, @result, @duration_ms, @notes, @failed_at, @alert_sent)
+  `);
+
+  caseLinks.forEach(({ test_case_id: testCaseId }, i) => {
+    const outcome = outcomes[i % outcomes.length];
+    insertResultStmt.run({
+      run_id: runId,
+      test_case_id: testCaseId,
+      result: outcome,
+      duration_ms: 1200 + i * 300,
+      notes: notesByOutcome[outcome],
+      failed_at: outcome === 'failed' ? endTime : null,
+      alert_sent: outcome === 'failed' ? 1 : 0,
+    });
+  });
+}
+
+export function seedReports() {
+  const { count } = db.prepare('SELECT COUNT(*) AS count FROM reports').get();
+  if (count > 0) return;
+
+  const run = db
+    .prepare(`
+      SELECT tr.*, s.name AS suite_name
+      FROM test_runs_v2 tr
+      JOIN suites s ON s.id = tr.suite_id
+      WHERE tr.status = 'completed'
+      ORDER BY tr.start_time ASC
+      LIMIT 1
+    `)
+    .get();
+  if (!run) return;
+
+  const results = db
+    .prepare(`
+      SELECT tc.title, tc.severity, tc.priority, trr.result, trr.notes, trr.duration_ms
+      FROM test_run_results trr
+      JOIN test_cases tc ON tc.id = trr.test_case_id
+      WHERE trr.run_id = ?
+      ORDER BY trr.id ASC
+    `)
+    .all(run.id);
+
+  db.prepare(`
+    INSERT INTO reports
+      (run_id, suite_name, run_date, total_count, passed_count, failed_count, skipped_count, results, generated_at)
+    VALUES
+      (@run_id, @suite_name, @run_date, @total_count, @passed_count, @failed_count, @skipped_count, @results, @generated_at)
+  `).run({
+    run_id: run.id,
+    suite_name: run.suite_name,
+    run_date: run.start_time,
+    total_count: results.length,
+    passed_count: run.pass_count,
+    failed_count: run.fail_count,
+    skipped_count: run.skip_count,
+    results: JSON.stringify(results),
+    generated_at: new Date(new Date(run.end_time).getTime() + 5 * 60 * 1000).toISOString(),
+  });
+}

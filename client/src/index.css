@@ -69,12 +69,19 @@ textarea {
   font: inherit;
 }
 
-button {
+button,
+a.secondary {
   cursor: pointer;
   border: 1px solid #dadce0;
   background: #fff;
+  color: #202124;
   border-radius: 6px;
   padding: 0.5rem 0.9rem;
+}
+
+a.secondary {
+  display: inline-block;
+  text-decoration: none;
 }
 
 button.primary {
@@ -332,6 +339,47 @@ textarea {
   color: #5f6368;
 }
 
+/* Test runs */
+
+.badge-run-in-progress {
+  background: #e3edf7;
+  color: #3b6ea5;
+}
+
+.badge-run-completed {
+  background: #b7e4c7;
+  color: #1e6f4c;
+}
+
+.badge-result-passed {
+  background: #b7e4c7;
+  color: #1e6f4c;
+}
+
+.badge-result-failed {
+  background: #fce8e6;
+  color: #b3261e;
+}
+
+.badge-result-skipped {
+  background: #eceff1;
+  color: #5f6368;
+}
+
+.badge-result-pending {
+  background: #fdf6d8;
+  color: #8a6d00;
+}
+
+.run-counts {
+  color: #5f6368;
+  margin-left: 0.5rem;
+}
+
+.alert-sent-tag {
+  font-size: 0.85rem;
+}
+
 .activity-message {
   color: #3c4043;
 }
@@ -441,4 +489,71 @@ textarea {
 
 .view-section li {
   margin-bottom: 0.3rem;
+}
+
+/* Dashboard */
+
+.metric-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.metric-card {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.metric-label {
+  color: #5f6368;
+  font-size: 0.85rem;
+}
+
+.metric-hint {
+  color: #5f6368;
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
+a.metric-hint {
+  color: #1a73e8;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #eceff1 25%, #f5f5f5 37%, #eceff1 63%);
+  background-size: 400% 100%;
+  animation: skeleton-pulse 1.4s ease infinite;
+  border-radius: 8px;
+  height: 4.5rem;
+  border: none;
+}
+
+.skeleton-block {
+  height: 8rem;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
