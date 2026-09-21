@@ -4,10 +4,20 @@ function HomePage() {
   const [message, setMessage] = useState('Loading...');
 
   useEffect(() => {
+    let ignore = false;
+
     fetch('/api/hello')
       .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch(() => setMessage('Could not reach the server.'));
+      .then((data) => {
+        if (!ignore) setMessage(data.message);
+      })
+      .catch(() => {
+        if (!ignore) setMessage('Could not reach the server.');
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   return (

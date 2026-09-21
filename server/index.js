@@ -29,6 +29,17 @@ seedTestCases();
 seedSuites();
 seedBugs();
 
+// General error handler — must be defined last, and must have exactly four
+// parameters (err, req, res, next) for Express to recognize it as one.
+// This project runs Express 4 (not 5), which does NOT auto-forward a
+// rejected promise from an async handler to this middleware — every route
+// handler here is synchronous with its own try/catch, but this stays as a
+// backstop for anything that slips through uncaught.
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, data: null, error: 'Internal server error' });
+});
+
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
