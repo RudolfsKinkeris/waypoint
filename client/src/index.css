@@ -1,0 +1,444 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.app h1 {
+  margin-bottom: 0.5rem;
+}
+
+/* Nav */
+
+.top-nav {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dadce0;
+}
+
+.top-nav a {
+  color: #3c4043;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.top-nav a.active {
+  color: #1a73e8;
+}
+
+/* Test cases page */
+
+.test-cases-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar input[type='text'] {
+  flex: 1;
+  max-width: 320px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid #dadce0;
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+}
+
+button.primary {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: #fff;
+}
+
+button.secondary {
+  background: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input[type='text'],
+select,
+textarea {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+}
+
+.error-banner {
+  background: #fce8e6;
+  color: #b3261e;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.test-cases-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.test-cases-table th,
+.test-cases-table td {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #000;
+}
+
+.test-cases-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #5f6368;
+}
+
+.test-cases-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.row-status-passed {
+  background: #b7e4c7;
+}
+
+.row-status-failed {
+  background: #fce8e6;
+}
+
+.row-status-draft {
+  background: #fdf6d8;
+}
+
+.row-status-ready {
+  background: #e3f6e8;
+}
+
+.empty-cell {
+  text-align: center;
+  color: #5f6368;
+  padding: 2rem 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.icon-button {
+  padding: 0.3rem 0.5rem;
+  line-height: 1;
+}
+
+.link-button {
+  border: none;
+  background: none;
+  color: #1a73e8;
+  padding: 0.25rem 0;
+}
+
+.title-link {
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.title-link:hover {
+  text-decoration: underline;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Badges */
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.badge-critical {
+  background: #fce8e6;
+  color: #b3261e;
+}
+
+.badge-major {
+  background: #fdecd8;
+  color: #b3651e;
+}
+
+.badge-minor {
+  background: #fef7d6;
+  color: #8a6d00;
+}
+
+.badge-trivial {
+  background: #eceff1;
+  color: #5f6368;
+}
+
+.badge-priority-high {
+  background: #fce8e6;
+  color: #c0392b;
+}
+
+.badge-priority-medium {
+  background: #fdf0d5;
+  color: #b7791f;
+}
+
+.badge-priority-low {
+  background: #e3edf7;
+  color: #3b6ea5;
+}
+
+.badge-status {
+  background: #eceff1;
+  color: #3c4043;
+  text-transform: capitalize;
+}
+
+.badge-suite-draft {
+  background: #fdf6d8;
+  color: #8a6d00;
+}
+
+.badge-suite-ready {
+  background: #e3f6e8;
+  color: #1e6f4c;
+}
+
+.badge-suite-in-progress {
+  background: #e3edf7;
+  color: #3b6ea5;
+}
+
+.badge-suite-passed {
+  background: #b7e4c7;
+  color: #1e6f4c;
+}
+
+.badge-suite-failed {
+  background: #fce8e6;
+  color: #b3261e;
+}
+
+/* Suite detail page */
+
+.suite-meta {
+  color: #5f6368;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.draggable-row {
+  cursor: grab;
+}
+
+.drag-handle {
+  color: #9aa0a6;
+  text-align: center;
+  width: 1.5rem;
+}
+
+/* Bug status badges */
+
+.badge-bug-open {
+  background: #fce8e6;
+  color: #b3261e;
+}
+
+.badge-bug-in-progress {
+  background: #e3edf7;
+  color: #3b6ea5;
+}
+
+.badge-bug-resolved {
+  background: #b7e4c7;
+  color: #1e6f4c;
+}
+
+.badge-bug-closed {
+  background: #eceff1;
+  color: #5f6368;
+}
+
+.badge-bug-reopened {
+  background: #fdf0d5;
+  color: #b7791f;
+}
+
+/* Bug detail page */
+
+.activity-timeline {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.activity-entry {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.activity-timestamp {
+  font-size: 0.78rem;
+  color: #5f6368;
+}
+
+.activity-message {
+  color: #3c4043;
+}
+
+/* Modal */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  background: #fff;
+  color: #202124;
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.field input,
+.field textarea,
+.field select {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  box-sizing: border-box;
+}
+
+.field-error {
+  color: #b3261e;
+  font-size: 0.85rem;
+  margin: -0.6rem 0 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .field {
+  flex: 1;
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.step-row input {
+  flex: 1;
+}
+
+.step-number {
+  color: #5f6368;
+  min-width: 1.2rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.view-badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.view-section {
+  margin-bottom: 1.25rem;
+}
+
+.view-section h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #5f6368;
+  margin: 0 0 0.4rem;
+}
+
+.view-section p,
+.view-section ol {
+  margin: 0;
+}
+
+.view-section ol {
+  padding-left: 1.25rem;
+}
+
+.view-section li {
+  margin-bottom: 0.3rem;
+}

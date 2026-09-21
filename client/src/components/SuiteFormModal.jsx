@@ -1,0 +1,89 @@
+import { useState } from 'react';
+
+const STATUSES = ['draft', 'ready', 'in-progress', 'passed', 'failed'];
+
+const EMPTY_FORM = { name: '', feature: '', status: 'draft' };
+
+function toFormState(suite) {
+  return { name: suite.name, feature: suite.feature, status: suite.status };
+}
+
+function SuiteFormModal({ initialValue, error, onSave, onClose }) {
+  const [form, setForm] = useState(initialValue ? toFormState(initialValue) : EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  function validate() {
+    const errs = {};
+    if (!form.name.trim()) errs.name = 'Name is required.';
+    if (!form.feature.trim()) errs.feature = 'Feature is required.';
+    return errs;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSaving(true);
+    try {
+      await onSave({
+        name: form.name.trim(),
+        feature: form.feature.trim(),
+        status: form.status,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>{initialValue ? 'Edit Suite' : 'Add Suite'}</h2>
+        {error && <p className="error-banner">{error}</p>}
+        <form onSubmit={handleSubmit}>
+          <label className="field">
+            Name *
+            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </label>
+          {errors.name && <p className="field-error">{errors.name}</p>}
+
+          <label className="field">
+            Feature *
+            <input
+              type="text"
+              placeholder="e.g. login"
+              value={form.feature}
+              onChange={(e) => setForm({ ...form, feature: e.target.value })}
+            />
+          </label>
+          {errors.feature && <p className="field-error">{errors.feature}</p>}
+
+          <label className="field">
+            Status
+            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="modal-actions">
+            <button type="button" className="secondary" onClick={onClose} disabled={saving}>
+              Cancel
+            </button>
+            <button type="submit" className="primary" disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default SuiteFormModal;
