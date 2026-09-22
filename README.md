@@ -95,5 +95,9 @@ From there (a few browser clicks Render's OAuth flow can't skip):
    commands, health check, free plan, and prompts for the two optional env vars above.
    Click **Apply**.
 
-Your live URL (`https://waypoint.onrender.com` or similar) appears on the service's
-dashboard page once the first build finishes (a few minutes).
+Your live URL (`https://waypoint.onrender.com` or similar — Render appends a random
+suffix if the exact name is taken) appears on the service's dashboard page once the
+first build finishes (a few minutes). The URL isn't shown on the Blueprint overview
+page — click into the `waypoint` service itself to find it, at the top of its page.
+
+**Currently live at: https://waypoint-6bro.onrender.com**
