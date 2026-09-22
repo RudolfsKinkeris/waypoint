@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y.js';
 
 const STATUSES = ['draft', 'ready', 'in-progress', 'passed', 'failed'];
 
@@ -12,6 +13,7 @@ function SuiteFormModal({ initialValue, error, onSave, onClose }) {
   const [form, setForm] = useState(initialValue ? toFormState(initialValue) : EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const modalRef = useModalA11y(onClose);
 
   function validate() {
     const errs = {};
@@ -40,7 +42,7 @@ function SuiteFormModal({ initialValue, error, onSave, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h2>{initialValue ? 'Edit Suite' : 'Add Suite'}</h2>
         {error && <p className="error-banner">{error}</p>}
         <form onSubmit={handleSubmit}>

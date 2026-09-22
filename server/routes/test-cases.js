@@ -38,7 +38,7 @@ function titleMatchesSearch(title, search) {
   return title.split(/\s+/).some((word) => isSubsequence(needle, word.toLowerCase()));
 }
 
-function validatePayload(body, { partial = false } = {}) {
+export function validatePayload(body, { partial = false } = {}) {
   const errors = [];
   const requiredFields = ['title', 'steps', 'expected_result', 'severity', 'priority'];
 
@@ -119,14 +119,8 @@ export function handleGetTestCase(req, res) {
   res.json({ success: true, data: serializeRow(row), error: null });
 }
 
-export function handleCreateTestCase(req, res) {
-  const errors = validatePayload(req.body);
-  if (errors.length) {
-    return res.status(400).json({ success: false, data: null, error: errors.join('; ') });
-  }
-
-  const now = new Date().toISOString();
-  const { title, preconditions = '', steps, expected_result, severity, priority, status = 'draft' } = req.body;
+function insertTestCaseRow(payload, now) {
+  const { title, preconditions = '', steps, expected_result, severity, priority, status = 'draft' } = payload;
 
   const result = db
     .prepare(`
@@ -145,8 +139,55 @@ export function handleCreateTestCase(req, res) {
       updated_at: now,
     });
 
-  const row = db.prepare('SELECT * FROM test_cases WHERE id = ?').get(result.lastInsertRowid);
+  return result.lastInsertRowid;
+}
+
+export function handleCreateTestCase(req, res) {
+  const errors = validatePayload(req.body);
+  if (errors.length) {
+    return res.status(400).json({ success: false, data: null, error: errors.join('; ') });
+  }
+
+  const now = new Date().toISOString();
+  const id = insertTestCaseRow(req.body, now);
+
+  const row = db.prepare('SELECT * FROM test_cases WHERE id = ?').get(id);
   res.status(201).json({ success: true, data: serializeRow(row), error: null });
+}
+
+export function handleImportTestCases(req, res) {
+  const { rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ success: false, data: null, error: 'rows must be a non-empty array' });
+  }
+
+  const now = new Date().toISOString();
+  const skipped = [];
+  const toInsert = [];
+
+  rows.forEach((row, i) => {
+    const errors = validatePayload(row);
+    if (errors.length) {
+      skipped.push({ row: i + 1, title: row.title || '(untitled)', errors });
+    } else {
+      toInsert.push(row);
+    }
+  });
+
+  let imported = 0;
+  db.exec('BEGIN');
+  try {
+    for (const row of toInsert) {
+      insertTestCaseRow(row, now);
+      imported++;
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ success: false, data: null, error: err.message });
+  }
+
+  res.status(201).json({ success: true, data: { imported, skipped, total: rows.length }, error: null });
 }
 
 export function handleUpdateTestCase(req, res) {
@@ -197,6 +238,7 @@ const router = Router();
 router.get('/', handleListTestCases);
 router.get('/:id', handleGetTestCase);
 router.post('/', handleCreateTestCase);
+router.post('/import', handleImportTestCases);
 router.put('/:id', handleUpdateTestCase);
 router.delete('/:id', handleDeleteTestCase);
 

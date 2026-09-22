@@ -1,39 +1,177 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Waypoint brand palette — playful pastel: periwinkle (primary), mint
+     (secondary/hover), coral (sparing accent, logo only), plus a lavender-
+     tinted neutral pairing for background/ink. */
+  --app-bg: #fafafd;
+  --app-surface: #ffffff;
+  --app-text: #26203c;
+  --app-text-secondary: #3c4043;
+  --app-border: #dadce0;
+  --app-accent: #7761d1;
+  --brand-mint-tint: #c4eee3;
+  --brand-coral: #f38868;
+}
+
+/* The `theme` setting picks between these three states:
+   - system (default): no [data-theme] attribute is set, so only the OS
+     preference below applies.
+   - light: `:root[data-theme="light"]` wins outright, and the `:not(...)`
+     guard on the dark media query stops it from also matching.
+   - dark: `:root[data-theme="dark"]` applies the same values the OS-driven
+     query would, so it works even when the OS itself is in light mode. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --app-bg: #131314;
+    --app-surface: #1e1f20;
+    --app-text: #e8eaed;
+    --app-text-secondary: #c3c2b7;
+    --app-border: #3c4043;
+    --app-accent: #9581e4;
+    --brand-mint-tint: #235c4e;
+  }
+}
+
+:root[data-theme="dark"] {
+  --app-bg: #131314;
+  --app-surface: #1e1f20;
+  --app-text: #e8eaed;
+  --app-text-secondary: #c3c2b7;
+  --app-border: #3c4043;
+  --app-accent: #9581e4;
+  --brand-mint-tint: #235c4e;
 }
 
 body {
   margin: 0;
-}
-
-.app {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
-}
-
-.app h1 {
-  margin-bottom: 0.5rem;
+  background: var(--app-bg);
+  color: var(--app-text);
 }
 
 /* Nav */
 
 .top-nav {
-  display: flex;
-  gap: 1.5rem;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dadce0;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
 }
 
-.top-nav a {
-  color: #3c4043;
+.top-nav-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0.85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.top-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--app-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.top-nav-logo {
+  display: block;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.top-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.top-nav-links a {
+  color: var(--app-text-secondary);
   text-decoration: none;
   font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
-.top-nav a.active {
-  color: #1a73e8;
+.top-nav-icon-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top-nav-links a:hover {
+  background: var(--brand-mint-tint);
+}
+
+.top-nav-links a.active {
+  color: var(--app-accent);
+  background: var(--brand-mint-tint);
+  font-weight: 700;
+}
+
+.top-nav-toggle {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.top-nav-toggle-bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--app-text);
+  border-radius: 1px;
+}
+
+@media (max-width: 768px) {
+  .top-nav-inner {
+    position: relative;
+  }
+
+  .top-nav-toggle {
+    display: flex;
+  }
+
+  /* Floats over the page instead of pushing it down — the header's own
+     height never changes when the menu opens, so the body stays put. */
+  .top-nav-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 1.5rem;
+    width: max-content;
+    min-width: 160px;
+    max-width: calc(100vw - 3rem);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    padding: 0.35rem;
+    gap: 0.05rem;
+    z-index: 30;
+  }
+
+  .top-nav-links.open {
+    display: flex;
+  }
+
+  .top-nav-links a {
+    padding: 0.55rem 0.75rem;
+  }
 }
 
 /* Test cases page */
@@ -72,9 +210,9 @@ textarea {
 button,
 a.secondary {
   cursor: pointer;
-  border: 1px solid #dadce0;
-  background: #fff;
-  color: #202124;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text);
   border-radius: 6px;
   padding: 0.5rem 0.9rem;
 }
@@ -85,13 +223,13 @@ a.secondary {
 }
 
 button.primary {
-  background: #1a73e8;
-  border-color: #1a73e8;
+  background: var(--app-accent);
+  border-color: var(--app-accent);
   color: #fff;
 }
 
 button.secondary {
-  background: #fff;
+  background: var(--app-surface);
 }
 
 button:disabled {
@@ -103,8 +241,10 @@ input[type='text'],
 select,
 textarea {
   padding: 0.5rem 0.6rem;
-  border: 1px solid #dadce0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
+  background: var(--app-surface);
+  color: var(--app-text);
 }
 
 .error-banner {
@@ -124,14 +264,14 @@ textarea {
 .test-cases-table td {
   text-align: left;
   padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .test-cases-table th {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #5f6368;
+  color: var(--app-text-secondary);
 }
 
 .test-cases-table th.sortable {
@@ -175,7 +315,7 @@ textarea {
 .link-button {
   border: none;
   background: none;
-  color: #1a73e8;
+  color: var(--app-accent);
   padding: 0.25rem 0;
 }
 
@@ -213,7 +353,7 @@ textarea {
 
 .badge-major {
   background: #fdecd8;
-  color: #b3651e;
+  color: #9f5a1b;
 }
 
 .badge-minor {
@@ -233,12 +373,12 @@ textarea {
 
 .badge-priority-medium {
   background: #fdf0d5;
-  color: #b7791f;
+  color: #966319;
 }
 
 .badge-priority-low {
   background: #e3edf7;
-  color: #3b6ea5;
+  color: #3a6da3;
 }
 
 .badge-status {
@@ -254,17 +394,17 @@ textarea {
 
 .badge-suite-ready {
   background: #e3f6e8;
-  color: #1e6f4c;
+  color: #1d6b49;
 }
 
 .badge-suite-in-progress {
   background: #e3edf7;
-  color: #3b6ea5;
+  color: #3a6da3;
 }
 
 .badge-suite-passed {
   background: #b7e4c7;
-  color: #1e6f4c;
+  color: #1d6b49;
 }
 
 .badge-suite-failed {
@@ -300,12 +440,12 @@ textarea {
 
 .badge-bug-in-progress {
   background: #e3edf7;
-  color: #3b6ea5;
+  color: #3a6da3;
 }
 
 .badge-bug-resolved {
   background: #b7e4c7;
-  color: #1e6f4c;
+  color: #1d6b49;
 }
 
 .badge-bug-closed {
@@ -315,7 +455,7 @@ textarea {
 
 .badge-bug-reopened {
   background: #fdf0d5;
-  color: #b7791f;
+  color: #966319;
 }
 
 /* Bug detail page */
@@ -343,17 +483,17 @@ textarea {
 
 .badge-run-in-progress {
   background: #e3edf7;
-  color: #3b6ea5;
+  color: #3a6da3;
 }
 
 .badge-run-completed {
   background: #b7e4c7;
-  color: #1e6f4c;
+  color: #1d6b49;
 }
 
 .badge-result-passed {
   background: #b7e4c7;
-  color: #1e6f4c;
+  color: #1d6b49;
 }
 
 .badge-result-failed {
@@ -397,8 +537,8 @@ textarea {
 }
 
 .modal {
-  background: #fff;
-  color: #202124;
+  background: var(--app-surface);
+  color: var(--app-text);
   border-radius: 10px;
   padding: 1.5rem;
   width: 100%;
@@ -501,7 +641,8 @@ textarea {
 }
 
 .metric-card {
-  border: 1px solid #dadce0;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   display: flex;
@@ -526,7 +667,7 @@ textarea {
 }
 
 a.metric-hint {
-  color: #1a73e8;
+  color: var(--app-accent);
 }
 
 .skeleton {
@@ -556,4 +697,357 @@ a.metric-hint {
   .skeleton {
     animation: none;
   }
+}
+
+/* Dashboard charts */
+
+:root {
+  --chart-surface: #ffffff;
+  --chart-text-primary: #202124;
+  --chart-text-muted: #898781;
+  --chart-gridline: #e1e0d9;
+  --chart-crosshair: #c3c2b7;
+  --chart-hover-highlight: #f1f2f4;
+  --chart-tooltip-bg: #202124;
+  --chart-tooltip-text: #ffffff;
+  --chart-tooltip-label: #dadce0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --chart-surface: #202124;
+    --chart-text-primary: #f1f3f4;
+    --chart-text-muted: #9aa0a6;
+    --chart-gridline: #3c4043;
+    --chart-crosshair: #5f6368;
+    --chart-hover-highlight: rgba(255, 255, 255, 0.06);
+    --chart-tooltip-bg: #f1f3f4;
+    --chart-tooltip-text: #202124;
+    --chart-tooltip-label: #5f6368;
+  }
+}
+
+/* Manual "dark" override (theme setting != system) applies even when the OS
+   itself is in light mode — same values as the media query above. */
+:root[data-theme="dark"] {
+  --chart-surface: #202124;
+  --chart-text-primary: #f1f3f4;
+  --chart-text-muted: #9aa0a6;
+  --chart-gridline: #3c4043;
+  --chart-crosshair: #5f6368;
+  --chart-hover-highlight: rgba(255, 255, 255, 0.06);
+  --chart-tooltip-bg: #f1f3f4;
+  --chart-tooltip-text: #202124;
+  --chart-tooltip-label: #5f6368;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1.25rem;
+  margin: 1.5rem 0 2rem;
+}
+
+/* The donut gets its own row (matching the combined width of the line and
+   bar charts above it), but the card itself is sized down to 3/4 of that
+   and centered in the row. */
+.chart-card:has(.chart-donut-row) {
+  grid-column: 1 / -1;
+  width: 75%;
+  margin: 0 auto;
+}
+
+.chart-card {
+  background: var(--chart-surface);
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chart-subtitle {
+  margin: 0.15rem 0 0.75rem;
+  color: #5f6368;
+  font-size: 0.82rem;
+}
+
+.chart-empty {
+  color: #5f6368;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.chart-svg-wrap {
+  position: relative;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.chart-gridline {
+  stroke: var(--chart-gridline);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  fill: var(--chart-text-muted);
+  font-size: 10px;
+}
+
+.chart-direct-label {
+  fill: var(--chart-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-crosshair {
+  stroke: var(--chart-crosshair);
+  stroke-width: 1;
+}
+
+.chart-hover-highlight {
+  fill: var(--chart-hover-highlight);
+}
+
+.chart-donut-total {
+  fill: var(--chart-text-primary);
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  color: #3c4043;
+}
+
+.chart-legend-vertical {
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: default;
+}
+
+.chart-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Two equal halves either side of the card's center line — the donut sits
+   centered in the left half, the legend centered in the right half, so
+   both are the same distance from center rather than packed together. */
+.chart-donut-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.chart-donut-svg-wrap {
+  position: relative;
+  width: 260px;
+  margin: 0 auto;
+}
+
+.chart-donut-row .chart-legend-vertical {
+  justify-self: center;
+  font-size: 0.92rem;
+}
+
+.chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: var(--chart-tooltip-bg);
+  color: var(--chart-tooltip-text);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.chart-tooltip-value {
+  font-weight: 700;
+}
+
+.chart-tooltip-label {
+  color: var(--chart-tooltip-label);
+}
+
+.chart-table-toggle {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.chart-table-toggle summary {
+  cursor: pointer;
+  color: var(--app-accent);
+}
+
+.chart-table-toggle table {
+  margin-top: 0.75rem;
+}
+
+/* CSV import page */
+
+.import-hint {
+  color: #5f6368;
+  margin-bottom: 1rem;
+}
+
+.import-summary {
+  margin: 0.5rem 0 1rem;
+}
+
+.import-error-text {
+  color: #b3261e;
+  font-size: 0.82rem;
+}
+
+.import-actions {
+  margin-top: 1.25rem;
+}
+
+.badge-valid {
+  background: #e3f6e8;
+  color: #1d6b49;
+}
+
+/* Settings page */
+
+.field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.field-checkbox input {
+  width: auto;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* Keyboard shortcuts */
+
+.shortcut-key {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  border-radius: 5px;
+  padding: 0.15rem 0.45rem;
+}
+
+.quick-search-modal {
+  max-width: 560px;
+  padding: 1rem;
+}
+
+.quick-search-modal input[type='text'] {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.quick-search-results {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.quick-search-empty {
+  color: var(--app-text-secondary);
+  padding: 0.75rem 0.4rem;
+}
+
+.quick-search-result {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  padding: 0.55rem 0.6rem;
+  cursor: pointer;
+}
+
+.quick-search-result.active,
+.quick-search-result:hover {
+  background: var(--brand-mint-tint);
+}
+
+.quick-search-type {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--app-text-secondary);
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+.quick-search-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-search-subtitle {
+  flex-shrink: 0;
+  color: var(--app-text-secondary);
+  font-size: 0.82rem;
+}
+
+/* Home */
+
+.home-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.home-hero h1 {
+  margin: 0;
+}
+
+.home-hero img {
+  border-radius: 9px;
 }

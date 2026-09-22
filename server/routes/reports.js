@@ -103,7 +103,7 @@ function buildReportHtml(report, { autoPrint = false } = {}) {
     align-items: flex-start;
     gap: 1.5rem;
     padding-bottom: 1.5rem;
-    border-bottom: 3px solid #1a73e8;
+    border-bottom: 3px solid #7761d1;
     margin-bottom: 1.75rem;
   }
   .report-eyebrow {
@@ -111,7 +111,7 @@ function buildReportHtml(report, { autoPrint = false } = {}) {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #1a73e8;
+    color: #7761d1;
     margin: 0 0 0.4rem;
   }
   .report-title {
@@ -230,7 +230,7 @@ function buildReportHtml(report, { autoPrint = false } = {}) {
   <div class="sheet">
     <div class="report-header">
       <div>
-        <p class="report-eyebrow">Bootcamp App &middot; QA Test Report</p>
+        <p class="report-eyebrow">Waypoint &middot; QA Test Report</p>
         <h1 class="report-title">${escapeHtml(report.suite_name)}</h1>
       </div>
       <div class="report-header-right">

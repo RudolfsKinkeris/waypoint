@@ -1,0 +1,6 @@
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Waypoint logo">
+  <rect x="2" y="2" width="44" height="44" rx="13" fill="#7761d1"/>
+  <path d="M24 10c-5.5 0-10 4.28-10 9.7C14 27 24 36 24 36s10-9 10-16.3C34 14.28 29.5 10 24 10z" fill="#ffffff"/>
+  <circle cx="24" cy="19.6" r="5.4" fill="#7761d1"/>
+  <path d="M21.3 19.7l2 2 3.6-4.1" fill="none" stroke="#f38868" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -35,3 +35,11 @@ export function updateTestCase(id, payload) {
 export function deleteTestCase(id) {
   return request(`${BASE_URL}/${id}`, { method: 'DELETE' });
 }
+
+export function importTestCases(rows) {
+  return request(`${BASE_URL}/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rows }),
+  });
+}

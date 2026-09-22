@@ -49,9 +49,25 @@ function BugsPage() {
     }
   }
 
+  // A <th onClick> alone isn't keyboard-operable — this makes it act like a button.
+  function sortableHeaderProps(column) {
+    return {
+      className: 'sortable',
+      role: 'button',
+      tabIndex: 0,
+      onClick: () => toggleSort(column),
+      onKeyDown: (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleSort(column);
+        }
+      },
+    };
+  }
+
   function sortIndicator(column) {
-    if (sortBy !== column) return '';
-    return sortDir === 'asc' ? ' ▲' : ' ▼';
+    if (sortBy !== column) return null;
+    return <span aria-hidden="true"> {sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
   async function handleSave(payload) {
@@ -94,11 +110,12 @@ function BugsPage() {
       <div className="toolbar">
         <input
           type="text"
+          aria-label="Search title and description"
           placeholder="Search title & description..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">All statuses</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -106,7 +123,7 @@ function BugsPage() {
             </option>
           ))}
         </select>
-        <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
+        <select aria-label="Filter by severity" value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
           <option value="">All severities</option>
           {SEVERITIES.map((s) => (
             <option key={s} value={s}>
@@ -121,19 +138,19 @@ function BugsPage() {
       <table className="test-cases-table">
         <thead>
           <tr>
-            <th className="sortable" onClick={() => toggleSort('title')}>
+            <th {...sortableHeaderProps('title')}>
               Title{sortIndicator('title')}
             </th>
-            <th className="sortable" onClick={() => toggleSort('severity')}>
+            <th {...sortableHeaderProps('severity')}>
               Severity{sortIndicator('severity')}
             </th>
-            <th className="sortable" onClick={() => toggleSort('priority')}>
+            <th {...sortableHeaderProps('priority')}>
               Priority{sortIndicator('priority')}
             </th>
-            <th className="sortable" onClick={() => toggleSort('status')}>
+            <th {...sortableHeaderProps('status')}>
               Status{sortIndicator('status')}
             </th>
-            <th className="sortable" onClick={() => toggleSort('updated_at')}>
+            <th {...sortableHeaderProps('updated_at')}>
               Updated{sortIndicator('updated_at')}
             </th>
             <th aria-label="Actions" />

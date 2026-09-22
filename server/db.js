@@ -114,4 +114,17 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_preferences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    theme TEXT NOT NULL DEFAULT 'system',
+    default_severity_for_new_bugs TEXT NOT NULL DEFAULT 'Minor',
+    default_page_size INTEGER NOT NULL DEFAULT 20,
+    timezone TEXT NOT NULL DEFAULT '',
+    auto_generate_report_after_run INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`);
+
 export default db;

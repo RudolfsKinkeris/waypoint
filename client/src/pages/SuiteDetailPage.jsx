@@ -169,7 +169,7 @@ function SuiteDetailPage() {
       )}
 
       <form className="toolbar" onSubmit={handleAddCase}>
-        <select value={selectedCaseId} onChange={(e) => setSelectedCaseId(e.target.value)}>
+        <select aria-label="Test case to add to suite" value={selectedCaseId} onChange={(e) => setSelectedCaseId(e.target.value)}>
           <option value="">Select a test case to add...</option>
           {availableToAdd.map((tc) => (
             <option key={tc.id} value={tc.id}>

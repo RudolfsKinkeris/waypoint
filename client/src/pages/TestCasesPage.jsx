@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Papa from 'papaparse';
 import { fetchTestCases, createTestCase, updateTestCase, deleteTestCase } from '../api/test-cases-api.js';
 import { fetchSuites } from '../api/suites-api.js';
 import SeverityBadge from '../components/SeverityBadge.jsx';
@@ -8,6 +10,8 @@ import TestCaseViewModal from '../components/TestCaseViewModal.jsx';
 
 const PAGE_SIZE = 20;
 const STATUSES = ['draft', 'ready', 'passed', 'failed', 'skipped'];
+const EXPORT_FETCH_SIZE = 100;
+const EXPORT_FIELDS = ['title', 'preconditions', 'steps', 'expected_result', 'severity', 'priority'];
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -32,6 +36,7 @@ function TestCasesPage() {
   const [error, setError] = useState(null);
   const [modalState, setModalState] = useState(null); // null | 'new' | test case object
   const [viewingTestCase, setViewingTestCase] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -59,9 +64,25 @@ function TestCasesPage() {
     setPage(1);
   }
 
+  // A <th onClick> alone isn't keyboard-operable — this makes it act like a button.
+  function sortableHeaderProps(column) {
+    return {
+      className: 'sortable',
+      role: 'button',
+      tabIndex: 0,
+      onClick: () => toggleSort(column),
+      onKeyDown: (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleSort(column);
+        }
+      },
+    };
+  }
+
   function sortIndicator(column) {
-    if (sortBy !== column) return '';
-    return sortDir === 'asc' ? ' ▲' : ' ▼';
+    if (sortBy !== column) return null;
+    return <span aria-hidden="true"> {sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
   async function handleSave(payload) {
@@ -91,28 +112,93 @@ function TestCasesPage() {
     load();
   }
 
+  // Pulls every page of the currently active search/status filter (not just
+  // the page on screen), so the export matches the filter, not the pagination.
+  async function fetchAllFilteredTestCases() {
+    const all = [];
+    let fetchPage = 1;
+    for (;;) {
+      const data = await fetchTestCases({
+        search,
+        status: statusFilter,
+        sortBy,
+        sortDir,
+        page: fetchPage,
+        pageSize: EXPORT_FETCH_SIZE,
+      });
+      all.push(...data.items);
+      if (all.length >= data.total || data.items.length === 0) break;
+      fetchPage += 1;
+    }
+    return all;
+  }
+
+  async function handleDownloadCsv() {
+    setDownloading(true);
+    setError(null);
+    try {
+      const allItems = await fetchAllFilteredTestCases();
+      const csv = Papa.unparse({
+        fields: EXPORT_FIELDS,
+        data: allItems.map((tc) => [
+          tc.title,
+          tc.preconditions || '',
+          tc.steps.join(' | '),
+          tc.expected_result,
+          tc.severity,
+          tc.priority,
+        ]),
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `test-cases-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="test-cases-page">
       <div className="page-header">
         <h1>Test Cases</h1>
-        <button className="primary" onClick={() => setModalState('new')}>
-          + Add Test Case
-        </button>
+        <div className="row-actions">
+          <button className="secondary" disabled={downloading} onClick={handleDownloadCsv}>
+            {downloading ? 'Preparing...' : 'Download CSV'}
+          </button>
+          <Link className="secondary" to="/test-cases/import">
+            Import CSV
+          </Link>
+          <button className="primary" onClick={() => setModalState('new')}>
+            + Add Test Case
+          </button>
+        </div>
       </div>
 
       <div className="toolbar">
         <input
           type="text"
+          aria-label="Search by title"
           placeholder="Search by title..."
           value={search}
+          readOnly // TEMPORARY — intentionally breaks typing for an upcoming test; revert after.
           onChange={(e) => {
             setSearch(e.target.value);
             setPage(1);
           }}
         />
         <select
+          aria-label="Filter by status"
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -134,14 +220,14 @@ function TestCasesPage() {
         <thead>
           <tr>
             <th>Title</th>
-            <th className="sortable" onClick={() => toggleSort('severity')}>
+            <th {...sortableHeaderProps('severity')}>
               Severity{sortIndicator('severity')}
             </th>
-            <th className="sortable" onClick={() => toggleSort('priority')}>
+            <th {...sortableHeaderProps('priority')}>
               Priority{sortIndicator('priority')}
             </th>
             <th>Status</th>
-            <th className="sortable" onClick={() => toggleSort('updated_at')}>
+            <th {...sortableHeaderProps('updated_at')}>
               Updated{sortIndicator('updated_at')}
             </th>
             <th aria-label="Actions" />

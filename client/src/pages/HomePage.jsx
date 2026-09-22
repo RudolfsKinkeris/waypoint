@@ -21,8 +21,11 @@ function HomePage() {
   }, []);
 
   return (
-    <main className="app">
-      <h1>Bootcamp App</h1>
+    <main className="test-cases-page">
+      <div className="home-hero">
+        <img src="/logo.svg" alt="" width="40" height="40" />
+        <h1>Waypoint</h1>
+      </div>
       <p>{message}</p>
     </main>
   );

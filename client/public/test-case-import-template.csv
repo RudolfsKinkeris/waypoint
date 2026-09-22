@@ -1,0 +1,2 @@
+title,preconditions,steps,expected_result,severity,priority,status
+Successful Login with Valid Credentials,User has an existing active account,"Navigate to the Log In page | Enter a valid username | Enter the correct password | Click Log In",The user is redirected to the Main page,Critical,High,ready

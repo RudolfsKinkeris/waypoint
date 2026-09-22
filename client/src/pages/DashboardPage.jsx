@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchDashboardMetrics } from '../api/dashboard-api.js';
+import { fetchDashboardMetrics, fetchDashboardTrends } from '../api/dashboard-api.js';
 import RunStatusBadge from '../components/RunStatusBadge.jsx';
+import PassRateTrendChart from '../components/PassRateTrendChart.jsx';
+import BugVelocityChart from '../components/BugVelocityChart.jsx';
+import StatusBreakdownChart from '../components/StatusBreakdownChart.jsx';
 
 const REFRESH_INTERVAL_MS = 30000;
 
@@ -24,14 +27,16 @@ function formatDuration(minutes) {
 
 function DashboardPage() {
   const [data, setData] = useState(null);
+  const [trends, setTrends] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasLoadedOnce = useRef(false);
 
   const load = useCallback(() => {
-    fetchDashboardMetrics()
-      .then((result) => {
-        setData(result);
+    Promise.all([fetchDashboardMetrics(), fetchDashboardTrends()])
+      .then(([metrics, trendsResult]) => {
+        setData(metrics);
+        setTrends(trendsResult);
         setError(null);
       })
       .catch((err) => setError(err.message))
@@ -105,6 +110,12 @@ function DashboardPage() {
             <span className="metric-hint">No completed runs yet</span>
           )}
         </div>
+      </div>
+
+      <div className="charts-grid">
+        <PassRateTrendChart runs={trends.pass_rate_trend} />
+        <BugVelocityChart weeks={trends.bug_velocity} />
+        <StatusBreakdownChart statuses={trends.status_breakdown} />
       </div>
 
       <h2>Recent Test Runs</h2>

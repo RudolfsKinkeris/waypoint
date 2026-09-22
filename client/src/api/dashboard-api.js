@@ -12,3 +12,7 @@ async function request(url) {
 export function fetchDashboardMetrics() {
   return request(`${BASE_URL}/metrics`);
 }
+
+export function fetchDashboardTrends() {
+  return request(`${BASE_URL}/trends`);
+}

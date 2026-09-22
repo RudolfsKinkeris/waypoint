@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { useSettings } from '../context/SettingsContext.jsx';
+import { useModalA11y } from '../hooks/useModalA11y.js';
 
 const SEVERITIES = ['Critical', 'Major', 'Minor', 'Trivial'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
+const FALLBACK_SEVERITY = 'Major';
 
 const EMPTY_FORM = {
   title: '',
@@ -10,13 +13,18 @@ const EMPTY_FORM = {
   expected: '',
   actual: '',
   environment: '',
-  severity: 'Major',
+  severity: FALLBACK_SEVERITY,
   priority: 'Medium',
 };
 
 function BugFormModal({ error, onSave, onClose }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+  const { settings } = useSettings();
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_FORM,
+    severity: settings?.default_severity_for_new_bugs || FALLBACK_SEVERITY,
+  }));
   const [errors, setErrors] = useState({});
+  const modalRef = useModalA11y(onClose);
   const [saving, setSaving] = useState(false);
 
   function updateStep(index, value) {
@@ -70,7 +78,7 @@ function BugFormModal({ error, onSave, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h2>Report Bug</h2>
         {error && <p className="error-banner">{error}</p>}
         <form onSubmit={handleSubmit}>

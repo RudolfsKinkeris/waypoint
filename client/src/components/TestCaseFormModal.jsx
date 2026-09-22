@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y.js';
 
 const SEVERITIES = ['Critical', 'Major', 'Minor', 'Trivial'];
 const PRIORITIES = ['High', 'Medium', 'Low'];
@@ -30,6 +31,7 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
   const [form, setForm] = useState(initialValue ? toFormState(initialValue) : EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const modalRef = useModalA11y(onClose);
 
   function updateStep(index, value) {
     const steps = [...form.steps];
@@ -80,7 +82,7 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h2>{initialValue ? 'Edit Test Case' : 'Add Test Case'}</h2>
         <form onSubmit={handleSubmit}>
           <label className="field">

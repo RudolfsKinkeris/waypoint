@@ -6,13 +6,18 @@ import bugsRouter from './routes/bugs.js';
 import testRunsRouter from './routes/test-runs.js';
 import dashboardRouter from './routes/dashboard.js';
 import reportsRouter from './routes/reports.js';
-import { seedTestCases, seedSuites, seedBugs, seedTestRuns, seedReports } from './seed.js';
+import settingsRouter from './routes/settings.js';
+import searchRouter from './routes/search.js';
+import { seedTestCases, seedSuites, seedBugs, seedTestRuns, seedReports, seedSettings } from './seed.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+// A CSV import can post a few hundred test cases in one request, which
+// exceeds body-parser's 100kb default well before that's an unreasonable
+// payload size.
+app.use(express.json({ limit: '5mb' }));
 
 // Simple health check
 app.get('/api/health', (req, res) => {
@@ -30,12 +35,15 @@ app.use('/api/bugs', bugsRouter);
 app.use('/api/test-runs', testRunsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/settings', settingsRouter);
+app.use('/api/search', searchRouter);
 
 seedTestCases();
 seedSuites();
 seedBugs();
 seedTestRuns();
 seedReports();
+seedSettings();
 
 // General error handler — must be defined last, and must have exactly four
 // parameters (err, req, res, next) for Express to recognize it as one.

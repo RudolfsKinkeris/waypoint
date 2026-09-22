@@ -381,3 +381,16 @@ export function seedReports() {
     generated_at: new Date(new Date(run.end_time).getTime() + 5 * 60 * 1000).toISOString(),
   });
 }
+
+export function seedSettings() {
+  const { count } = db.prepare('SELECT COUNT(*) AS count FROM user_preferences').get();
+  if (count > 0) return;
+
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO user_preferences
+      (theme, default_severity_for_new_bugs, default_page_size, timezone, auto_generate_report_after_run, created_at, updated_at)
+    VALUES
+      ('system', 'Minor', 20, '', 1, @created_at, @updated_at)
+  `).run({ created_at: now, updated_at: now });
+}

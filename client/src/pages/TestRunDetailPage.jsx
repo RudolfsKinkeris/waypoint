@@ -127,7 +127,7 @@ function TestRunDetailPage() {
               <td>
                 <ResultBadge value={result.result} />
                 {result.result === 'failed' && result.alert_sent && (
-                  <span className="alert-sent-tag" title="Discord alert sent"> 🔔</span>
+                  <span className="alert-sent-tag" role="img" aria-label="Discord alert sent" title="Discord alert sent"> 🔔</span>
                 )}
               </td>
               <td>
