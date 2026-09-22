@@ -1,0 +1,13 @@
+services:
+  - name: waypoint
+    type: web
+    runtime: node
+    plan: free
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_BASE_URL
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false

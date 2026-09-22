@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import testCasesRouter from './routes/test-cases.js';
 import suitesRouter from './routes/suites.js';
 import bugsRouter from './routes/bugs.js';
@@ -44,6 +47,20 @@ seedBugs();
 seedTestRuns();
 seedReports();
 seedSettings();
+
+// In production there's no separate Vite dev server — this same process
+// serves the client's built static files too, so the whole app is one
+// deployable service. Locally, client/dist doesn't exist (Vite's own dev
+// server handles the client instead), so this block is a no-op there.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientDist = path.join(__dirname, '..', 'client', 'dist');
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 // General error handler — must be defined last, and must have exactly four
 // parameters (err, req, res, next) for Express to recognize it as one.
