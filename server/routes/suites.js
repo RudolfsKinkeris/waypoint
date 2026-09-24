@@ -7,13 +7,19 @@ function parseTestCaseRow(row) {
   return { ...row, steps: JSON.parse(row.steps) };
 }
 
+const MAX_LENGTHS = { name: 200, feature: 100 };
+
 function validateSuitePayload(body, { partial = false } = {}) {
   const errors = [];
   const requiredFields = ['name', 'feature'];
 
   for (const field of requiredFields) {
-    if (!partial && (body[field] === undefined || body[field] === null || body[field] === '')) {
+    const value = body[field];
+    const isBlank = value === undefined || value === null || (typeof value === 'string' && !value.trim());
+    if (!partial && isBlank) {
       errors.push(`${field} is required`);
+    } else if (typeof value === 'string' && value.length > MAX_LENGTHS[field]) {
+      errors.push(`${field} must be ${MAX_LENGTHS[field]} characters or fewer`);
     }
   }
 

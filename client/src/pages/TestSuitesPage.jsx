@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchSuites, createSuite, deleteSuite } from '../api/suites-api.js';
 import SuiteStatusBadge from '../components/SuiteStatusBadge.jsx';
@@ -17,16 +17,27 @@ function TestSuitesPage() {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const latestRequestId = useRef(0);
 
   const load = useCallback(() => {
     setLoading(true);
+    const requestId = ++latestRequestId.current;
     fetchSuites({ status: statusFilter })
       .then((data) => {
+        if (requestId !== latestRequestId.current) return; // a newer filter change already resolved
         setItems(data.items);
         setError(null);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (requestId !== latestRequestId.current) return;
+        setError(err.message);
+        setItems([]); // stale rows next to an error banner would look like current data
+      })
+      .finally(() => {
+        if (requestId === latestRequestId.current) setLoading(false);
+      });
   }, [statusFilter]);
 
   useEffect(() => {
@@ -38,20 +49,31 @@ function TestSuitesPage() {
       await createSuite(payload);
       setShowForm(false);
       setFormError(null);
+      // New suites always start as "draft" server-side — if a different
+      // status filter is active, the suite was created but won't show up in
+      // this now-reloaded list, which would otherwise look like a failure.
+      setNotice(
+        statusFilter && statusFilter !== 'draft'
+          ? `Suite created — it won't appear here while the "${statusFilter}" filter is active.`
+          : null,
+      );
       load();
     } catch (err) {
       setFormError(err.message);
     }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this suite?')) return;
+  async function handleDelete(id, name) {
+    if (!window.confirm(`Delete "${name}"? This also removes its test case associations.`)) return;
+    setDeletingId(id);
     try {
       await deleteSuite(id);
       setError(null);
       load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -81,7 +103,8 @@ function TestSuitesPage() {
         </select>
       </div>
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && <p className="error-banner" role="alert">{error}</p>}
+      {notice && <p className="metric-hint" role="status">{notice}</p>}
 
       <table className="test-cases-table">
         <thead>
@@ -116,7 +139,12 @@ function TestSuitesPage() {
                 <td>{suite.case_count}</td>
                 <td>{formatDate(suite.updated_at)}</td>
                 <td className="row-actions">
-                  <button className="icon-button" onClick={() => handleDelete(suite.id)} aria-label="Delete">
+                  <button
+                    className="icon-button"
+                    onClick={() => handleDelete(suite.id, suite.name)}
+                    disabled={deletingId === suite.id}
+                    aria-label={`Delete "${suite.name}"`}
+                  >
                     🗑
                   </button>
                 </td>

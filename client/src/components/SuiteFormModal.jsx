@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 
 const STATUSES = ['draft', 'ready', 'in-progress', 'passed', 'failed'];
@@ -11,9 +11,17 @@ function toFormState(suite) {
 
 function SuiteFormModal({ initialValue, error, onSave, onClose }) {
   const [form, setForm] = useState(initialValue ? toFormState(initialValue) : EMPTY_FORM);
+  const initialFormRef = useRef(form);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const modalRef = useModalA11y(onClose);
+
+  function handleRequestClose() {
+    const isDirty = JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
+    if (isDirty && !window.confirm('Discard unsaved changes to this suite?')) return;
+    onClose();
+  }
+
+  const modalRef = useModalA11y(handleRequestClose);
 
   function validate() {
     const errs = {};
@@ -41,14 +49,32 @@ function SuiteFormModal({ initialValue, error, onSave, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h2>{initialValue ? 'Edit Suite' : 'Add Suite'}</h2>
-        {error && <p className="error-banner">{error}</p>}
+    <div className="modal-overlay" onClick={handleRequestClose}>
+      <div
+        className="modal"
+        ref={modalRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="suite-form-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="suite-form-title">{initialValue ? 'Edit Suite' : 'Add Suite'}</h2>
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleSubmit}>
           <label className="field">
             Name *
-            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input
+              type="text"
+              value={form.name}
+              aria-required="true"
+              maxLength={200}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
           </label>
           {errors.name && <p className="field-error">{errors.name}</p>}
 
@@ -58,6 +84,8 @@ function SuiteFormModal({ initialValue, error, onSave, onClose }) {
               type="text"
               placeholder="e.g. login"
               value={form.feature}
+              aria-required="true"
+              maxLength={100}
               onChange={(e) => setForm({ ...form, feature: e.target.value })}
             />
           </label>
@@ -75,7 +103,7 @@ function SuiteFormModal({ initialValue, error, onSave, onClose }) {
           </label>
 
           <div className="modal-actions">
-            <button type="button" className="secondary" onClick={onClose} disabled={saving}>
+            <button type="button" className="secondary" onClick={handleRequestClose} disabled={saving}>
               Cancel
             </button>
             <button type="submit" className="primary" disabled={saving}>
