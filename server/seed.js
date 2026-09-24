@@ -270,71 +270,95 @@ export function seedBugs() {
   });
 }
 
+// Deliberately engineered pass/fail sequences, one per test case, so the flaky-test
+// leaderboard (server/routes/flaky-tests.js) shows real, varied flakiness scores on
+// first boot instead of every score computing to 0 for lack of history:
+//  - "Logout Button Clears Session": P,F,P,F  -> obviously flaky (score 1.0)
+//  - "Password Reset Email Is Sent": P,P,P,F  -> marginally flaky (score ~0.33)
+//  - "Search Bar Returns Matching Results": P,P,F,P -> flaky (score ~0.67)
+//  - "Login Fails with Incorrect Password": F,F,F,F -> consistently broken, not flaky (0)
+//  - "Successful Login with Valid Credentials": all P across both suites -> stable (0)
+const TEST_RUNS_PLAN = [
+  {
+    suiteName: 'Login Regression Suite',
+    resultsByTitle: {
+      'Successful Login with Valid Credentials': ['passed', 'passed', 'passed', 'passed'],
+      'Login Fails with Incorrect Password': ['failed', 'failed', 'failed', 'failed'],
+      'Logout Button Clears Session': ['passed', 'failed', 'passed', 'failed'],
+    },
+  },
+  {
+    suiteName: 'Core Smoke Suite',
+    resultsByTitle: {
+      'Successful Login with Valid Credentials': ['passed', 'passed', 'passed', 'passed'],
+      'Password Reset Email Is Sent': ['passed', 'passed', 'passed', 'failed'],
+      'Search Bar Returns Matching Results': ['passed', 'passed', 'failed', 'passed'],
+    },
+  },
+];
+
+const RUN_RESULT_NOTES = {
+  passed: null,
+  failed: 'Result recorded as failed during this run.',
+};
+
 export function seedTestRuns() {
   const { count } = db.prepare('SELECT COUNT(*) AS count FROM test_runs_v2').get();
   if (count > 0) return;
 
-  const suite = db.prepare('SELECT id FROM suites WHERE name = ?').get('Login Regression Suite');
-  if (!suite) return;
+  const testCaseRows = db.prepare('SELECT id, title FROM test_cases').all();
+  const testCaseIdByTitle = Object.fromEntries(testCaseRows.map((row) => [row.title, row.id]));
 
-  const caseLinks = db
-    .prepare('SELECT test_case_id FROM suite_test_cases WHERE suite_id = ? ORDER BY sort_order ASC')
-    .all(suite.id);
-  if (caseLinks.length === 0) return;
-
-  const now = Date.now();
-  const startTime = new Date(now - 2 * 3600 * 1000).toISOString();
-  const endTime = new Date(now - 1 * 3600 * 1000).toISOString();
-
-  const outcomes = ['passed', 'failed', 'skipped'];
-  const notesByOutcome = {
-    passed: null,
-    failed: 'Login redirected to the Main page, but the username was not shown in the top right corner.',
-    skipped: 'Skipped — not exercised in this run.',
-  };
-
-  let passCount = 0;
-  let failCount = 0;
-  let skipCount = 0;
-  caseLinks.forEach((_, i) => {
-    const outcome = outcomes[i % outcomes.length];
-    if (outcome === 'passed') passCount++;
-    if (outcome === 'failed') failCount++;
-    if (outcome === 'skipped') skipCount++;
-  });
-
-  const runResult = db
-    .prepare(`
-      INSERT INTO test_runs_v2 (suite_id, status, pass_count, fail_count, skip_count, start_time, end_time, created_by)
-      VALUES (@suite_id, 'completed', @pass_count, @fail_count, @skip_count, @start_time, @end_time, @created_by)
-    `)
-    .run({
-      suite_id: suite.id,
-      pass_count: passCount,
-      fail_count: failCount,
-      skip_count: skipCount,
-      start_time: startTime,
-      end_time: endTime,
-      created_by: 'seed',
-    });
-
-  const runId = runResult.lastInsertRowid;
+  const insertRunStmt = db.prepare(`
+    INSERT INTO test_runs_v2 (suite_id, status, pass_count, fail_count, skip_count, start_time, end_time, created_by)
+    VALUES (@suite_id, 'completed', @pass_count, @fail_count, @skip_count, @start_time, @end_time, @created_by)
+  `);
   const insertResultStmt = db.prepare(`
     INSERT INTO test_run_results (run_id, test_case_id, result, duration_ms, notes, failed_at, alert_sent)
     VALUES (@run_id, @test_case_id, @result, @duration_ms, @notes, @failed_at, @alert_sent)
   `);
 
-  caseLinks.forEach(({ test_case_id: testCaseId }, i) => {
-    const outcome = outcomes[i % outcomes.length];
-    insertResultStmt.run({
-      run_id: runId,
-      test_case_id: testCaseId,
-      result: outcome,
-      duration_ms: 1200 + i * 300,
-      notes: notesByOutcome[outcome],
-      failed_at: outcome === 'failed' ? endTime : null,
-      alert_sent: outcome === 'failed' ? 1 : 0,
-    });
+  const now = Date.now();
+  let runIndex = 0;
+
+  TEST_RUNS_PLAN.forEach(({ suiteName, resultsByTitle }) => {
+    const suite = db.prepare('SELECT id FROM suites WHERE name = ?').get(suiteName);
+    if (!suite) return;
+
+    const titles = Object.keys(resultsByTitle);
+    const runCount = resultsByTitle[titles[0]].length;
+
+    for (let i = 0; i < runCount; i++) {
+      runIndex++;
+      const startTime = new Date(now - (20 - runIndex) * 3600 * 1000).toISOString();
+      const endTime = new Date(now - (20 - runIndex) * 3600 * 1000 + 20 * 60 * 1000).toISOString();
+
+      const rowResults = titles
+        .map((title) => ({ test_case_id: testCaseIdByTitle[title], result: resultsByTitle[title][i] }))
+        .filter((row) => row.test_case_id);
+
+      const runResult = insertRunStmt.run({
+        suite_id: suite.id,
+        pass_count: rowResults.filter((row) => row.result === 'passed').length,
+        fail_count: rowResults.filter((row) => row.result === 'failed').length,
+        skip_count: 0,
+        start_time: startTime,
+        end_time: endTime,
+        created_by: 'seed',
+      });
+
+      rowResults.forEach(({ test_case_id: testCaseId, result }) => {
+        insertResultStmt.run({
+          run_id: runResult.lastInsertRowid,
+          test_case_id: testCaseId,
+          result,
+          duration_ms: 900 + i * 250,
+          notes: RUN_RESULT_NOTES[result],
+          failed_at: result === 'failed' ? endTime : null,
+          alert_sent: result === 'failed' ? 1 : 0,
+        });
+      });
+    }
   });
 }
 

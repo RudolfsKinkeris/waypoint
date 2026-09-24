@@ -1,0 +1,6 @@
+{
+  "name": "flaky-test-tracker",
+  "description": "Tracks pass/fail history across test runs to surface flaky tests, writes AI root-cause hypotheses, and alerts a Discord channel the moment a test newly crosses into flaky.",
+  "version": "1.0.0",
+  "author": "Waypoint QA Tooling"
+}

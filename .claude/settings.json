@@ -18,6 +18,11 @@
             "type": "command",
             "command": "bash .claude/hooks/vocabulary-check.sh",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/flake-analysis-reminder.sh",
+            "timeout": 15
           }
         ]
       }

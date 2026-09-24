@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchDashboardMetrics, fetchDashboardTrends } from '../api/dashboard-api.js';
+import { fetchFlakyTests } from '../api/flaky-tests-api.js';
 import RunStatusBadge from '../components/RunStatusBadge.jsx';
 import PassRateTrendChart from '../components/PassRateTrendChart.jsx';
 import BugVelocityChart from '../components/BugVelocityChart.jsx';
@@ -28,15 +29,17 @@ function formatDuration(minutes) {
 function DashboardPage() {
   const [data, setData] = useState(null);
   const [trends, setTrends] = useState(null);
+  const [flakyCount, setFlakyCount] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasLoadedOnce = useRef(false);
 
   const load = useCallback(() => {
-    Promise.all([fetchDashboardMetrics(), fetchDashboardTrends()])
-      .then(([metrics, trendsResult]) => {
+    Promise.all([fetchDashboardMetrics(), fetchDashboardTrends(), fetchFlakyTests()])
+      .then(([metrics, trendsResult, flakyTests]) => {
         setData(metrics);
         setTrends(trendsResult);
+        setFlakyCount(flakyTests.filter((t) => t.is_flaky).length);
         setError(null);
       })
       .catch((err) => setError(err.message))
@@ -57,7 +60,7 @@ function DashboardPage() {
       <div className="test-cases-page">
         <h1>Dashboard</h1>
         <div className="metric-cards">
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <div className="metric-card skeleton" key={i} />
           ))}
         </div>
@@ -109,6 +112,13 @@ function DashboardPage() {
           {data.metrics.avg_run_duration_minutes === null && (
             <span className="metric-hint">No completed runs yet</span>
           )}
+        </div>
+        <div className="metric-card">
+          <span className="metric-value">{flakyCount}</span>
+          <span className="metric-label">Flaky Tests</span>
+          <Link className="metric-hint" to="/flaky-tests">
+            {flakyCount > 0 ? 'View leaderboard →' : 'View flaky test tracker →'}
+          </Link>
         </div>
       </div>
 

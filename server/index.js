@@ -11,6 +11,7 @@ import dashboardRouter from './routes/dashboard.js';
 import reportsRouter from './routes/reports.js';
 import settingsRouter from './routes/settings.js';
 import searchRouter from './routes/search.js';
+import flakyTestsRouter from './routes/flaky-tests.js';
 import { seedTestCases, seedSuites, seedBugs, seedTestRuns, seedReports, seedSettings } from './seed.js';
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/flaky-tests', flakyTestsRouter);
 
 seedTestCases();
 seedSuites();

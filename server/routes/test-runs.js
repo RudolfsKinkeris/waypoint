@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import db from '../db.js';
+import { computeFlakinessForTestCase } from './flaky-tests.js';
 
 const VALID_RESULTS = ['passed', 'failed', 'skipped'];
 const APP_BASE_URL = process.env.APP_BASE_URL || 'http://localhost:5173';
+const FLAKY_ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 function getRunWithResults(runId) {
   const run = db
@@ -69,6 +71,74 @@ async function sendDiscordFailureAlert({ runId, testCaseId, notes }) {
   } catch (err) {
     console.error('Failed to send Discord failure alert:', err.message);
     return false;
+  }
+}
+
+async function sendDiscordFlakyAlert({ testCaseId, flakinessScore }) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn('DISCORD_WEBHOOK_URL is not set — skipping flaky-test alert.');
+    return false;
+  }
+
+  const testCase = db.prepare('SELECT title FROM test_cases WHERE id = ?').get(testCaseId);
+  const flakyTestsLink = `${APP_BASE_URL}/flaky-tests`;
+  const content = [
+    `⚠️ **New Flaky Test Detected:** ${testCase ? testCase.title : `Test case #${testCaseId}`}`,
+    `**Flakiness score:** ${Math.round(flakinessScore * 100)}%`,
+    `**Flaky tests:** ${flakyTestsLink}`,
+  ].join('\n');
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Failed to send Discord flaky-test alert:', err.message);
+    return false;
+  }
+}
+
+// A test can newly cross into "flaky" on a passing result just as easily as a
+// failing one, so this runs unconditionally after every result write — never
+// nested inside the `result === 'failed'` branch above.
+async function checkAndAlertOnNewFlake(testCaseId) {
+  const { flakinessScore, isFlaky } = computeFlakinessForTestCase(testCaseId);
+
+  const existing = db.prepare('SELECT * FROM flaky_test_state WHERE test_case_id = ?').get(testCaseId);
+  const wasFlaky = existing ? !!existing.is_flaky : false;
+  const now = new Date().toISOString();
+
+  const cooldownElapsed =
+    !existing?.last_alerted_at || Date.now() - new Date(existing.last_alerted_at).getTime() > FLAKY_ALERT_COOLDOWN_MS;
+
+  const shouldAlert = !wasFlaky && isFlaky && cooldownElapsed;
+  const alertSent = shouldAlert ? await sendDiscordFlakyAlert({ testCaseId, flakinessScore }) : false;
+
+  if (!existing) {
+    db.prepare(`
+      INSERT INTO flaky_test_state (test_case_id, is_flaky, first_detected_at, last_alerted_at)
+      VALUES (@test_case_id, @is_flaky, @first_detected_at, @last_alerted_at)
+    `).run({
+      test_case_id: testCaseId,
+      is_flaky: isFlaky ? 1 : 0,
+      first_detected_at: isFlaky ? now : null,
+      last_alerted_at: alertSent ? now : null,
+    });
+  } else {
+    db.prepare(`
+      UPDATE flaky_test_state
+      SET is_flaky = @is_flaky, first_detected_at = @first_detected_at, last_alerted_at = @last_alerted_at
+      WHERE test_case_id = @test_case_id
+    `).run({
+      test_case_id: testCaseId,
+      is_flaky: isFlaky ? 1 : 0,
+      first_detected_at: existing.first_detected_at || (isFlaky ? now : null),
+      last_alerted_at: alertSent ? now : existing.last_alerted_at,
+    });
   }
 }
 
@@ -172,6 +242,8 @@ export async function handleUpdateRunResult(req, res) {
       const alertSent = await sendDiscordFailureAlert({ runId, testCaseId: existing.test_case_id, notes: notes ?? existing.notes });
       db.prepare('UPDATE test_run_results SET alert_sent = ? WHERE id = ?').run(alertSent ? 1 : 0, resultId);
     }
+
+    await checkAndAlertOnNewFlake(existing.test_case_id);
 
     recomputeRunCounts(runId);
 

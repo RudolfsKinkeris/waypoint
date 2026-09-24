@@ -127,4 +127,22 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS flaky_test_state (
+    test_case_id INTEGER PRIMARY KEY REFERENCES test_cases(id) ON DELETE CASCADE,
+    is_flaky INTEGER NOT NULL DEFAULT 0,
+    first_detected_at TEXT,
+    last_alerted_at TEXT
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS flaky_test_analysis (
+    test_case_id INTEGER PRIMARY KEY REFERENCES test_cases(id) ON DELETE CASCADE,
+    flakiness_score REAL NOT NULL,
+    hypothesis TEXT NOT NULL,
+    analyzed_at TEXT NOT NULL
+  )
+`);
+
 export default db;

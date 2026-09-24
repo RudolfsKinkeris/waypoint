@@ -9,6 +9,7 @@ import BugsPage from './pages/BugsPage.jsx';
 import BugDetailPage from './pages/BugDetailPage.jsx';
 import TestRunsPage from './pages/TestRunsPage.jsx';
 import TestRunDetailPage from './pages/TestRunDetailPage.jsx';
+import FlakyTestsPage from './pages/FlakyTestsPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import ReportDetailPage from './pages/ReportDetailPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
@@ -33,6 +34,7 @@ function App() {
           <Route path="/bugs/:id" element={<BugDetailPage />} />
           <Route path="/test-runs" element={<TestRunsPage />} />
           <Route path="/test-runs/:id" element={<TestRunDetailPage />} />
+          <Route path="/flaky-tests" element={<FlakyTestsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/reports/:id" element={<ReportDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -909,6 +909,35 @@ a.metric-hint {
   margin-top: 0.75rem;
 }
 
+/* Flaky Tests page */
+
+.flaky-insight-note {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.flaky-sparkline {
+  display: block;
+  vertical-align: middle;
+}
+
+.flaky-sparkline-empty {
+  color: var(--app-text-secondary);
+  font-size: 0.85rem;
+}
+
+.flaky-hypothesis-pending {
+  color: var(--app-text-secondary);
+  font-size: 0.88rem;
+}
+
+.flaky-hypothesis-pending code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
+
 /* CSV import page */
 
 .import-hint {
