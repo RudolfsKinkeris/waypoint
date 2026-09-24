@@ -167,8 +167,11 @@ export function handleImportTestCases(req, res) {
 
   rows.forEach((row, i) => {
     const errors = validatePayload(row);
+    // rowNumber is the row's position in the source CSV (set client-side);
+    // fall back to array position only for a caller that didn't send one.
+    const rowNumber = row.rowNumber ?? i + 1;
     if (errors.length) {
-      skipped.push({ row: i + 1, title: row.title || '(untitled)', errors });
+      skipped.push({ row: rowNumber, title: row.title || '(untitled)', errors });
     } else {
       toInsert.push(row);
     }

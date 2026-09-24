@@ -58,6 +58,7 @@ function mapRow(raw, rowNumber) {
 function ImportTestCasesPage() {
   const [encodingWarning, setEncodingWarning] = useState(false);
   const [headerError, setHeaderError] = useState(null);
+  const [emptyFileWarning, setEmptyFileWarning] = useState(false);
   const [parsedRows, setParsedRows] = useState([]);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState(null);
@@ -65,32 +66,46 @@ function ImportTestCasesPage() {
 
   async function handleFileChange(e) {
     const file = e.target.files[0];
+    // Reset the input's value so re-selecting the same file (e.g. after
+    // fixing it and saving under the same name) still fires this handler —
+    // otherwise most browsers won't fire onChange for an unchanged value.
+    e.target.value = '';
     if (!file) return;
 
     setEncodingWarning(false);
     setHeaderError(null);
+    setEmptyFileWarning(false);
     setParsedRows([]);
     setImportError(null);
     setReport(null);
 
-    const text = await file.text();
-    setEncodingWarning(text.includes('�'));
+    try {
+      const text = await file.text();
+      setEncodingWarning(text.includes('�'));
 
-    const { data, meta } = Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (h) => h.trim().toLowerCase(),
-      transform: (v) => (typeof v === 'string' ? v.trim() : v),
-    });
+      const { data, meta } = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (h) => h.trim().toLowerCase(),
+        transform: (v) => (typeof v === 'string' ? v.trim() : v),
+      });
 
-    const fields = meta.fields || [];
-    const missing = REQUIRED_FIELDS.filter((f) => !fields.includes(f));
-    if (missing.length > 0) {
-      setHeaderError(`CSV is missing required column(s): ${missing.join(', ')}`);
-      return;
+      const fields = meta.fields || [];
+      const missing = REQUIRED_FIELDS.filter((f) => !fields.includes(f));
+      if (missing.length > 0) {
+        setHeaderError(`CSV is missing required column(s): ${missing.join(', ')}`);
+        return;
+      }
+
+      if (data.length === 0) {
+        setEmptyFileWarning(true);
+        return;
+      }
+
+      setParsedRows(data.map((raw, i) => mapRow(raw, i + 1)));
+    } catch (err) {
+      setImportError(`Couldn't read this file: ${err.message}`);
     }
-
-    setParsedRows(data.map((raw, i) => mapRow(raw, i + 1)));
   }
 
   const validRows = parsedRows.filter((r) => r.errors.length === 0);
@@ -100,7 +115,7 @@ function ImportTestCasesPage() {
     setImporting(true);
     setImportError(null);
     try {
-      const result = await importTestCases(validRows.map((r) => r.payload));
+      const result = await importTestCases(validRows.map((r) => ({ ...r.payload, rowNumber: r.rowNumber })));
       setReport(result);
       setParsedRows([]);
     } catch (err) {
@@ -124,7 +139,8 @@ function ImportTestCasesPage() {
         <>
           <p className="import-hint">
             CSV columns: <code>title</code>, <code>preconditions</code>, <code>steps</code> (pipe-separated, e.g.{' '}
-            <code>Step one | Step two</code>), <code>expected_result</code>, <code>severity</code>,{' '}
+            <code>Step one | Step two</code> — avoid using <code>|</code> within a step's own text, since it's
+            treated as a separator), <code>expected_result</code>, <code>severity</code>,{' '}
             <code>priority</code>, <code>status</code> (optional, defaults to <code>draft</code>).{' '}
             <a href="/test-case-import-template.csv" download>
               Download CSV template
@@ -141,6 +157,7 @@ function ImportTestCasesPage() {
             </p>
           )}
           {headerError && <p className="error-banner">{headerError}</p>}
+          {emptyFileWarning && <p className="error-banner">No rows found in this file.</p>}
           {importError && <p className="error-banner">{importError}</p>}
 
           {parsedRows.length > 0 && (
@@ -238,6 +255,9 @@ function ImportTestCasesPage() {
             <Link to="/test-cases" className="link-button">
               View test cases
             </Link>
+            <button className="secondary" onClick={() => setReport(null)}>
+              Import another file
+            </button>
           </div>
         </div>
       )}
