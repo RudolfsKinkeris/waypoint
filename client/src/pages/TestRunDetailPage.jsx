@@ -61,6 +61,12 @@ function TestRunDetailPage() {
         failed_step: failedStepFor(result) || null,
       });
       setRun(updated);
+      // Drop the local draft so the field falls back to reading straight from
+      // the saved response — otherwise a step picked before a Pass/Skip (which
+      // the server ignores outside a failing result) would keep showing here
+      // even though it was never actually persisted.
+      setNotesDraft(({ [result.id]: _dropped, ...rest }) => rest);
+      setFailedStepDraft(({ [result.id]: _dropped, ...rest }) => rest);
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -113,9 +119,18 @@ function TestRunDetailPage() {
             Started {formatDate(run.start_time)} · Ended {formatDate(run.end_time)}
           </p>
         </div>
-        <button className="secondary" disabled={generatingReport} onClick={handleGenerateReport}>
-          {generatingReport ? 'Generating...' : 'Generate report'}
-        </button>
+        <div>
+          <button
+            className="secondary"
+            disabled={generatingReport || run.status !== 'completed'}
+            onClick={handleGenerateReport}
+          >
+            {generatingReport ? 'Generating...' : 'Generate report'}
+          </button>
+          {run.status !== 'completed' && (
+            <p className="metric-hint">Record every result to generate a report.</p>
+          )}
+        </div>
       </div>
 
       {actionError && <p className="error-banner">{actionError}</p>}
@@ -131,7 +146,11 @@ function TestRunDetailPage() {
           </tr>
         </thead>
         <tbody>
-          {run.results.map((result) => (
+          {run.results.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="empty-cell">No results in this run.</td>
+            </tr>
+          ) : run.results.map((result) => (
             <tr key={result.id}>
               <td>{result.title}</td>
               <td>
@@ -162,6 +181,8 @@ function TestRunDetailPage() {
                 <input
                   type="text"
                   placeholder="Add notes..."
+                  aria-label={`Notes for ${result.title}`}
+                  maxLength={500}
                   value={draftFor(result)}
                   onChange={(e) => setNotesDraft({ ...notesDraft, [result.id]: e.target.value })}
                 />
@@ -169,6 +190,7 @@ function TestRunDetailPage() {
               <td className="row-actions">
                 <button
                   className="secondary"
+                  aria-label={`Mark "${result.title}" as passed`}
                   disabled={savingId === result.id}
                   onClick={() => handleSetResult(result, 'passed')}
                 >
@@ -176,6 +198,7 @@ function TestRunDetailPage() {
                 </button>
                 <button
                   className="secondary"
+                  aria-label={`Mark "${result.title}" as failed`}
                   disabled={savingId === result.id}
                   onClick={() => handleSetResult(result, 'failed')}
                 >
@@ -183,6 +206,7 @@ function TestRunDetailPage() {
                 </button>
                 <button
                   className="secondary"
+                  aria-label={`Mark "${result.title}" as skipped`}
                   disabled={savingId === result.id}
                   onClick={() => handleSetResult(result, 'skipped')}
                 >

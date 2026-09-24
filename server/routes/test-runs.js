@@ -236,6 +236,12 @@ export async function handleUpdateRunResult(req, res) {
   if (!VALID_RESULTS.includes(result)) {
     return res.status(400).json({ success: false, data: null, error: `result must be one of ${VALID_RESULTS.join(', ')}` });
   }
+  if (typeof notes === 'string' && notes.length > 500) {
+    return res.status(400).json({ success: false, data: null, error: 'notes must be 500 characters or fewer' });
+  }
+  if (typeof failedStepInput === 'string' && failedStepInput.length > 500) {
+    return res.status(400).json({ success: false, data: null, error: 'failed_step must be 500 characters or fewer' });
+  }
 
   const existing = db.prepare('SELECT * FROM test_run_results WHERE id = ? AND run_id = ?').get(resultId, runId);
   if (!existing) {
