@@ -1,0 +1,6 @@
+{
+  "name": "waypoint-qa-toolkit",
+  "description": "Claude Code tooling for QA workflows: turning raw notes into bug tickets, generating ISTQB-style test cases, reviewing changes from a QA tester's angle, and tracking flaky tests with AI-written root-cause hypotheses and live Discord alerts.",
+  "version": "1.0.0",
+  "author": "RudolfsKinkeris <rudolfs.kinkeris@testdevlab.com>"
+}
