@@ -6,7 +6,7 @@ const MARGIN = { top: 16, right: 16, bottom: 28, left: 38 };
 const PLOT_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
 const GRID_VALUES = [0, 25, 50, 75, 100];
-const LINE_COLOR = '#7761d1'; // brand periwinkle
+const LINE_COLOR = 'var(--app-accent)'; // brand periwinkle — resolves per-theme, unlike a literal hex
 
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
