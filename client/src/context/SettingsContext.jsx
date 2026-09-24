@@ -6,15 +6,21 @@ const SettingsContext = createContext(null);
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [settingsError, setSettingsError] = useState(null);
 
   const reload = useCallback(() => {
     setLoading(true);
     return fetchSettings()
-      .then(setSettings)
+      .then((data) => {
+        setSettings(data);
+        setSettingsError(null);
+      })
       // Theme/default-severity consumers fall back to their own hardcoded
       // defaults when settings never load, so a fetch failure here shouldn't
-      // block the rest of the app.
-      .catch(() => {})
+      // block the rest of the app — but it's still exposed as settingsError
+      // so the Settings page itself can show a real error instead of being
+      // stuck on "Loading..." forever.
+      .catch((err) => setSettingsError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -33,7 +39,7 @@ export function SettingsProvider({ children }) {
   }, [settings]);
 
   return (
-    <SettingsContext.Provider value={{ settings, loading, reload, setSettings }}>
+    <SettingsContext.Provider value={{ settings, loading, settingsError, reload, setSettings }}>
       {children}
     </SettingsContext.Provider>
   );

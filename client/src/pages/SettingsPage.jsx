@@ -30,8 +30,17 @@ const TIMEZONE_OPTIONS = (() => {
   return ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Europe/Berlin', 'Asia/Tokyo', 'Australia/Sydney'];
 })();
 
+// A <select> silently falls back to its first option when the bound value
+// doesn't match any <option> — which the field's own state never finds out
+// about, so an untouched field can get quietly overwritten with the wrong
+// value on the next Save. Validate against the known list instead of trusting
+// stored data always matches it (legacy rows, manual DB edits, etc.).
+function pickValid(value, validValues, fallback) {
+  return validValues.includes(value) ? value : fallback;
+}
+
 function SettingsPage() {
-  const { settings, loading, setSettings } = useSettings();
+  const { settings, loading, settingsError, reload, setSettings } = useSettings();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -39,7 +48,13 @@ function SettingsPage() {
 
   useEffect(() => {
     if (settings && !form) {
-      setForm({ ...settings, timezone: settings.timezone || getBrowserTimezone() });
+      setForm({
+        ...settings,
+        theme: pickValid(settings.theme, THEMES, 'system'),
+        default_severity_for_new_bugs: pickValid(settings.default_severity_for_new_bugs, SEVERITIES, 'Minor'),
+        default_page_size: pickValid(settings.default_page_size, PAGE_SIZES, 20),
+        timezone: settings.timezone || getBrowserTimezone(),
+      });
     }
   }, [settings, form]);
 
@@ -64,11 +79,25 @@ function SettingsPage() {
     }
   }
 
-  if (loading || !form) {
+  if (loading) {
+    return (
+      <div className="test-cases-page" aria-live="polite">
+        <h1>Settings</h1>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!form) {
     return (
       <div className="test-cases-page">
         <h1>Settings</h1>
-        <p>Loading...</p>
+        <p className="error-banner" role="alert">
+          {settingsError || "Couldn't load settings."}
+        </p>
+        <button className="secondary" onClick={reload}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -77,7 +106,11 @@ function SettingsPage() {
     <div className="test-cases-page">
       <h1>Settings</h1>
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="view-section">
@@ -92,6 +125,7 @@ function SettingsPage() {
               ))}
             </select>
           </label>
+          <p className="metric-hint">Applies after you save.</p>
         </div>
 
         <div className="view-section">
@@ -154,7 +188,11 @@ function SettingsPage() {
           <button className="primary" type="submit" disabled={saving}>
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
-          {saved && <span className="badge badge-valid">Saved</span>}
+          {saved && (
+            <span className="badge badge-valid" role="status">
+              Saved
+            </span>
+          )}
         </div>
       </form>
     </div>
