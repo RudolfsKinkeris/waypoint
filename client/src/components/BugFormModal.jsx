@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useModalA11y } from '../hooks/useModalA11y.js';
 
@@ -21,11 +21,23 @@ function BugFormModal({ error, onSave, onClose }) {
   const { settings } = useSettings();
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
-    severity: settings?.default_severity_for_new_bugs || FALLBACK_SEVERITY,
+    severity: SEVERITIES.includes(settings?.default_severity_for_new_bugs)
+      ? settings.default_severity_for_new_bugs
+      : FALLBACK_SEVERITY,
   }));
+  const initialFormRef = useRef(form);
   const [errors, setErrors] = useState({});
-  const modalRef = useModalA11y(onClose);
   const [saving, setSaving] = useState(false);
+
+  // Closing via the overlay or Escape shouldn't silently discard a form the
+  // user has actually filled in — only prompt when something's changed.
+  function handleRequestClose() {
+    const isDirty = JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
+    if (isDirty && !window.confirm('Discard this bug report? Your entered details will be lost.')) return;
+    onClose();
+  }
+
+  const modalRef = useModalA11y(handleRequestClose);
 
   function updateStep(index, value) {
     const steps = [...form.steps_to_reproduce];
@@ -77,14 +89,31 @@ function BugFormModal({ error, onSave, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h2>Report Bug</h2>
-        {error && <p className="error-banner">{error}</p>}
+    <div className="modal-overlay" onClick={handleRequestClose}>
+      <div
+        className="modal"
+        ref={modalRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bug-form-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="bug-form-title">Report Bug</h2>
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
         <form onSubmit={handleSubmit}>
           <label className="field">
             Title *
-            <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <input
+              type="text"
+              value={form.title}
+              aria-required="true"
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
           </label>
           {errors.title && <p className="field-error">{errors.title}</p>}
 
@@ -102,12 +131,17 @@ function BugFormModal({ error, onSave, onClose }) {
             {form.steps_to_reproduce.map((step, i) => (
               <div className="step-row" key={i}>
                 <span className="step-number">{i + 1}.</span>
-                <input type="text" value={step} onChange={(e) => updateStep(i, e.target.value)} />
+                <input
+                  type="text"
+                  value={step}
+                  aria-label={`Step ${i + 1}`}
+                  onChange={(e) => updateStep(i, e.target.value)}
+                />
                 <button
                   type="button"
                   className="icon-button"
                   onClick={() => removeStep(i)}
-                  aria-label="Remove step"
+                  aria-label={`Remove step ${i + 1}`}
                 >
                   ✕
                 </button>
@@ -121,13 +155,23 @@ function BugFormModal({ error, onSave, onClose }) {
 
           <label className="field">
             Expected *
-            <textarea rows={2} value={form.expected} onChange={(e) => setForm({ ...form, expected: e.target.value })} />
+            <textarea
+              rows={2}
+              value={form.expected}
+              aria-required="true"
+              onChange={(e) => setForm({ ...form, expected: e.target.value })}
+            />
           </label>
           {errors.expected && <p className="field-error">{errors.expected}</p>}
 
           <label className="field">
             Actual *
-            <textarea rows={2} value={form.actual} onChange={(e) => setForm({ ...form, actual: e.target.value })} />
+            <textarea
+              rows={2}
+              value={form.actual}
+              aria-required="true"
+              onChange={(e) => setForm({ ...form, actual: e.target.value })}
+            />
           </label>
           {errors.actual && <p className="field-error">{errors.actual}</p>}
 
@@ -166,7 +210,7 @@ function BugFormModal({ error, onSave, onClose }) {
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="secondary" onClick={onClose} disabled={saving}>
+            <button type="button" className="secondary" onClick={handleRequestClose} disabled={saving}>
               Cancel
             </button>
             <button type="submit" className="primary" disabled={saving}>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBugs, createBug, deleteBug } from '../api/bugs-api.js';
 import SeverityBadge from '../components/SeverityBadge.jsx';
@@ -16,6 +16,7 @@ function formatDate(iso) {
 function BugsPage() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
   const [sortBy, setSortBy] = useState('updated_at');
@@ -24,17 +25,32 @@ function BugsPage() {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState(null);
+  const latestRequestId = useRef(0);
+
+  // Typing fires this on every keystroke otherwise, which both flickers the
+  // table (loading state on every character) and risks an in-flight request
+  // for an earlier search term resolving after a later one and overwriting it.
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timeout);
+  }, [search]);
 
   const load = useCallback(() => {
     setLoading(true);
-    fetchBugs({ search, status: statusFilter, severity: severityFilter, sortBy, sortDir })
+    const requestId = ++latestRequestId.current;
+    fetchBugs({ search: debouncedSearch, status: statusFilter, severity: severityFilter, sortBy, sortDir })
       .then((data) => {
+        if (requestId !== latestRequestId.current) return; // a newer request already resolved
         setItems(data.items);
         setError(null);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [search, statusFilter, severityFilter, sortBy, sortDir]);
+      .catch((err) => {
+        if (requestId === latestRequestId.current) setError(err.message);
+      })
+      .finally(() => {
+        if (requestId === latestRequestId.current) setLoading(false);
+      });
+  }, [debouncedSearch, statusFilter, severityFilter, sortBy, sortDir]);
 
   useEffect(() => {
     load();
@@ -55,6 +71,7 @@ function BugsPage() {
       className: 'sortable',
       role: 'button',
       tabIndex: 0,
+      'aria-sort': sortBy === column ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none',
       onClick: () => toggleSort(column),
       onKeyDown: (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -81,8 +98,8 @@ function BugsPage() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Delete this bug?')) return;
+  async function handleDelete(id, title) {
+    if (!window.confirm(`Delete "${title}"?`)) return;
     try {
       await deleteBug(id);
       setError(null);
@@ -133,7 +150,7 @@ function BugsPage() {
         </select>
       </div>
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && <p className="error-banner" role="alert">{error}</p>}
 
       <table className="test-cases-table">
         <thead>
@@ -178,7 +195,11 @@ function BugsPage() {
                 <td><BugStatusBadge value={bug.status} /></td>
                 <td>{formatDate(bug.updated_at)}</td>
                 <td className="row-actions">
-                  <button className="icon-button" onClick={() => handleDelete(bug.id)} aria-label="Delete">
+                  <button
+                    className="icon-button"
+                    onClick={() => handleDelete(bug.id, bug.title)}
+                    aria-label={`Delete "${bug.title}"`}
+                  >
                     🗑
                   </button>
                 </td>
