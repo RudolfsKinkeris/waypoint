@@ -25,17 +25,32 @@ function BugDetailPage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    fetchBug(id)
-      .then((data) => {
-        setBug(data);
-        setError(null);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
+  // silent=true is used to refresh after a mutation: it must never clear the
+  // page (a transient refetch failure right after a successful status change
+  // or comment shouldn't wipe the title/description/activity/forms the user
+  // is still looking at), so it reports into refreshError instead of error.
+  const load = useCallback(
+    ({ silent = false } = {}) => {
+      if (!silent) setLoading(true);
+      fetchBug(id)
+        .then((data) => {
+          setBug(data);
+          setError(null);
+          setRefreshError(null);
+        })
+        .catch((err) => {
+          if (silent) setRefreshError(err.message);
+          else setError(err.message);
+        })
+        .finally(() => {
+          if (!silent) setLoading(false);
+        });
+    },
+    [id],
+  );
 
   useEffect(() => {
     load();
@@ -45,14 +60,20 @@ function BugDetailPage() {
     e.preventDefault();
     if (!nextStatus) return;
     setActionError(null);
+    setSuccessMessage(null);
     setSubmitting(true);
     try {
       await changeBugStatus(id, nextStatus, statusMessage.trim());
       setNextStatus('');
       setStatusMessage('');
-      load();
+      setSuccessMessage('Status updated.');
+      load({ silent: true });
     } catch (err) {
       setActionError(err.message);
+      // The bug's status may have moved since this page loaded (e.g. another
+      // session), which is often why a transition gets rejected — refresh so
+      // the displayed status/options match reality instead of staying stale.
+      load({ silent: true });
     } finally {
       setSubmitting(false);
     }
@@ -62,11 +83,13 @@ function BugDetailPage() {
     e.preventDefault();
     if (!commentText.trim()) return;
     setActionError(null);
+    setSuccessMessage(null);
     setSubmitting(true);
     try {
       await addBugComment(id, commentText.trim());
       setCommentText('');
-      load();
+      setSuccessMessage('Comment added.');
+      load({ silent: true });
     } catch (err) {
       setActionError(err.message);
     } finally {
@@ -106,7 +129,21 @@ function BugDetailPage() {
         </div>
       </div>
 
-      {actionError && <p className="error-banner">{actionError}</p>}
+      {refreshError && (
+        <p className="error-banner" role="status">
+          Couldn't refresh — showing the last loaded data. ({refreshError})
+        </p>
+      )}
+      {actionError && (
+        <p className="error-banner" role="alert">
+          {actionError}
+        </p>
+      )}
+      {successMessage && (
+        <p className="metric-hint" role="status">
+          {successMessage}
+        </p>
+      )}
 
       {bug.description && (
         <div className="view-section">
@@ -119,7 +156,7 @@ function BugDetailPage() {
         <h3>Steps to Reproduce</h3>
         <ol>
           {bug.steps_to_reproduce.map((step, i) => (
-            <li key={i}>{step}</li>
+            <li key={i}>{typeof step === 'string' ? step : String(step)}</li>
           ))}
         </ol>
       </div>
@@ -146,7 +183,7 @@ function BugDetailPage() {
         <p className="empty-cell">No further status transitions are allowed from "{bug.status}".</p>
       ) : (
         <form className="toolbar" onSubmit={handleStatusChange}>
-          <select value={nextStatus} onChange={(e) => setNextStatus(e.target.value)}>
+          <select aria-label="Move to status" value={nextStatus} onChange={(e) => setNextStatus(e.target.value)}>
             <option value="">Move to...</option>
             {nextOptions.map((s) => (
               <option key={s} value={s}>
@@ -156,7 +193,9 @@ function BugDetailPage() {
           </select>
           <input
             type="text"
+            aria-label="Optional note about this status change"
             placeholder="Optional note about this change..."
+            maxLength={500}
             value={statusMessage}
             onChange={(e) => setStatusMessage(e.target.value)}
           />
@@ -181,7 +220,9 @@ function BugDetailPage() {
                   {entry.message && <span className="activity-message"> — {entry.message}</span>}
                 </span>
               ) : (
-                <span className="activity-message">💬 {entry.message}</span>
+                <span className="activity-message">
+                  <span aria-hidden="true">💬</span> {entry.message}
+                </span>
               )}
             </li>
           ))}
@@ -191,7 +232,9 @@ function BugDetailPage() {
       <form className="toolbar" onSubmit={handleAddComment}>
         <input
           type="text"
+          aria-label="Add a comment"
           placeholder="Add a comment..."
+          maxLength={500}
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
         />

@@ -57,8 +57,15 @@ function validateBugPayload(body, { partial = false } = {}) {
     }
   }
 
-  if (body.steps_to_reproduce !== undefined && !Array.isArray(body.steps_to_reproduce)) {
-    errors.push('steps_to_reproduce must be an array of strings');
+  if (body.steps_to_reproduce !== undefined) {
+    if (!Array.isArray(body.steps_to_reproduce)) {
+      errors.push('steps_to_reproduce must be an array of strings');
+    } else if (body.steps_to_reproduce.some((step) => typeof step !== 'string' || !step.trim())) {
+      // Every step is rendered directly as a React child on the detail page —
+      // a non-string entry (object, boolean, etc.) would crash that page with
+      // no way to recover short of editing the database directly.
+      errors.push('steps_to_reproduce must contain only non-empty strings');
+    }
   }
   if (body.severity !== undefined && !VALID_SEVERITIES.includes(body.severity)) {
     errors.push(`severity must be one of ${VALID_SEVERITIES.join(', ')}`);
@@ -241,6 +248,9 @@ export function handleChangeBugStatus(req, res) {
   if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
     return res.status(400).json({ success: false, data: null, error: `status must be one of ${VALID_STATUSES.join(', ')}` });
   }
+  if (typeof message === 'string' && message.length > 500) {
+    return res.status(400).json({ success: false, data: null, error: 'message must be 500 characters or fewer' });
+  }
 
   const allowedNext = ALLOWED_TRANSITIONS[existing.status] || [];
   if (!allowedNext.includes(newStatus)) {
@@ -291,6 +301,9 @@ export function handleAddBugComment(req, res) {
   const { message } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ success: false, data: null, error: 'message is required' });
+  }
+  if (message.length > 500) {
+    return res.status(400).json({ success: false, data: null, error: 'message must be 500 characters or fewer' });
   }
 
   const now = new Date().toISOString();
