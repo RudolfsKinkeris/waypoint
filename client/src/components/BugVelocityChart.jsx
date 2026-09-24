@@ -13,6 +13,7 @@ const SERIES = [
 ];
 
 function formatWeekLabel(iso) {
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
@@ -42,6 +43,15 @@ function roundedTopRectPath(x, y, width, height, radius) {
 
 function BugVelocityChart({ weeks }) {
   const [hoverIndex, setHoverIndex] = useState(null);
+
+  if (weeks.length === 0) {
+    return (
+      <div className="chart-card">
+        <h3 className="chart-title">Bugs Opened vs Closed</h3>
+        <p className="chart-empty">No bug activity yet.</p>
+      </div>
+    );
+  }
 
   const maxValue = Math.max(1, ...weeks.map((w) => Math.max(w.opened, w.closed)));
   const niceMax = niceCeil(maxValue);

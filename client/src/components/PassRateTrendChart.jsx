@@ -9,10 +9,12 @@ const GRID_VALUES = [0, 25, 50, 75, 100];
 const LINE_COLOR = 'var(--app-accent)'; // brand periwinkle — resolves per-theme, unlike a literal hex
 
 function formatShortDate(iso) {
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 function formatFullDate(iso) {
+  if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',

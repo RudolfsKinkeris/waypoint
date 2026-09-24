@@ -18,6 +18,13 @@ const STATUS_META = {
   skipped: { label: 'Skipped', color: '#e87ba4' },
 };
 
+// A status outside the known set (a future addition, bad data) would otherwise
+// throw at render time and take down the whole page — fall back to a neutral
+// swatch labeled with the raw value instead.
+function getStatusMeta(status) {
+  return STATUS_META[status] || { label: status, color: '#9aa0a6' };
+}
+
 function polarPoint(angleDeg, radius) {
   const rad = (angleDeg * Math.PI) / 180;
   return { x: CENTER + radius * Math.sin(rad), y: CENTER - radius * Math.cos(rad) };
@@ -59,7 +66,7 @@ function StatusBreakdownChart({ statuses }) {
       const pad = Math.min(PAD_DEG, sweep * 0.2);
       const slice = {
         ...s,
-        meta: STATUS_META[s.status],
+        meta: getStatusMeta(s.status),
         startAngle: cursor + pad,
         endAngle: cursor + sweep - pad,
         midAngle: cursor + sweep / 2,
@@ -116,8 +123,8 @@ function StatusBreakdownChart({ statuses }) {
               onMouseEnter={() => s.count > 0 && setHoverStatus(s.status)}
               onMouseLeave={() => setHoverStatus((cur) => (cur === s.status ? null : cur))}
             >
-              <span className="chart-legend-swatch" style={{ background: STATUS_META[s.status].color }} />
-              {STATUS_META[s.status].label} — {s.count} ({total > 0 ? Math.round((s.count / total) * 100) : 0}%)
+              <span className="chart-legend-swatch" style={{ background: getStatusMeta(s.status).color }} />
+              {getStatusMeta(s.status).label} — {s.count} ({total > 0 ? Math.round((s.count / total) * 100) : 0}%)
             </li>
           ))}
         </ul>
@@ -136,7 +143,7 @@ function StatusBreakdownChart({ statuses }) {
           <tbody>
             {statuses.map((s) => (
               <tr key={s.status}>
-                <td>{STATUS_META[s.status].label}</td>
+                <td>{getStatusMeta(s.status).label}</td>
                 <td>{s.count}</td>
                 <td>{total > 0 ? Math.round((s.count / total) * 100) : 0}%</td>
               </tr>

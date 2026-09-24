@@ -30,16 +30,27 @@ function DashboardPage() {
   const [data, setData] = useState(null);
   const [trends, setTrends] = useState(null);
   const [flakyCount, setFlakyCount] = useState(null);
+  const [flakyError, setFlakyError] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasLoadedOnce = useRef(false);
 
+  // Fetched independently from the core metrics/trends below: a flaky-tests
+  // outage shouldn't take down the rest of an otherwise-working dashboard.
+  const loadFlakyCount = useCallback(() => {
+    fetchFlakyTests()
+      .then((flakyTests) => {
+        setFlakyCount(flakyTests.filter((t) => t.is_flaky).length);
+        setFlakyError(null);
+      })
+      .catch((err) => setFlakyError(err.message));
+  }, []);
+
   const load = useCallback(() => {
-    Promise.all([fetchDashboardMetrics(), fetchDashboardTrends(), fetchFlakyTests()])
-      .then(([metrics, trendsResult, flakyTests]) => {
+    Promise.all([fetchDashboardMetrics(), fetchDashboardTrends()])
+      .then(([metrics, trendsResult]) => {
         setData(metrics);
         setTrends(trendsResult);
-        setFlakyCount(flakyTests.filter((t) => t.is_flaky).length);
         setError(null);
       })
       .catch((err) => setError(err.message))
@@ -47,7 +58,8 @@ function DashboardPage() {
         hasLoadedOnce.current = true;
         setInitialLoading(false);
       });
-  }, []);
+    loadFlakyCount();
+  }, [loadFlakyCount]);
 
   useEffect(() => {
     load();
@@ -75,6 +87,9 @@ function DashboardPage() {
       <div className="test-cases-page">
         <h1>Dashboard</h1>
         <p className="error-banner">{error}</p>
+        <button className="secondary" onClick={load}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -114,11 +129,15 @@ function DashboardPage() {
           )}
         </div>
         <div className="metric-card">
-          <span className="metric-value">{flakyCount}</span>
+          <span className="metric-value">{flakyError ? '—' : flakyCount}</span>
           <span className="metric-label">Flaky Tests</span>
-          <Link className="metric-hint" to="/flaky-tests">
-            {flakyCount > 0 ? 'View leaderboard →' : 'View flaky test tracker →'}
-          </Link>
+          {flakyError ? (
+            <span className="metric-hint">Unable to load</span>
+          ) : (
+            <Link className="metric-hint" to="/flaky-tests">
+              {flakyCount > 0 ? 'View leaderboard →' : 'View flaky test tracker →'}
+            </Link>
+          )}
         </div>
       </div>
 
