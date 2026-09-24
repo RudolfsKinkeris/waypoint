@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchReports } from '../api/reports-api.js';
 
@@ -17,7 +17,7 @@ function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetchReports()
       .then((data) => {
         setItems(data.items);
@@ -27,30 +27,45 @@ function ReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   return (
     <div className="test-cases-page">
       <div className="page-header">
         <h1>Reports</h1>
       </div>
 
-      {error && <p className="error-banner">{error}</p>}
+      {error && (
+        <p className="error-banner" role="alert">
+          {error}{' '}
+          <button className="link-button" onClick={load}>
+            Retry
+          </button>
+        </p>
+      )}
 
       <table className="test-cases-table">
         <thead>
           <tr>
             <th>Suite</th>
-            <th>Run Date</th>
+            <th title="When the test run itself executed">Run Date</th>
             <th>Total</th>
             <th>Passed</th>
             <th>Failed</th>
             <th>Skipped</th>
-            <th>Generated</th>
+            <th title="When this report record was generated">Generated</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
               <td colSpan={7} className="empty-cell">Loading...</td>
+            </tr>
+          ) : error && items.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="empty-cell">Couldn't load reports.</td>
             </tr>
           ) : items.length === 0 ? (
             <tr>
@@ -60,7 +75,11 @@ function ReportsPage() {
             items.map((report) => (
               <tr key={report.id}>
                 <td>
-                  <Link className="title-link" to={`/reports/${report.id}`}>
+                  <Link
+                    className="title-link"
+                    to={`/reports/${report.id}`}
+                    aria-label={`${report.suite_name} — generated ${formatDate(report.generated_at)}`}
+                  >
                     {report.suite_name}
                   </Link>
                 </td>
