@@ -60,9 +60,11 @@ variables in Render's dashboard instead (`render.yaml` already declares both as 
 optional values):
 
 - `APP_BASE_URL` — public URL of this deployment, used to build the link in Discord
-  failure-alert messages. Set it to your Render URL once you have it; safe to leave blank.
-- `DISCORD_WEBHOOK_URL` — optional. Only needed if you want failed test-run results to
-  post a Discord alert. Leave unset to disable alerts entirely.
+  failure-alert and flaky-test-alert messages. Set it to your Render URL once you have
+  it; safe to leave blank.
+- `DISCORD_WEBHOOK_URL` — optional. Only needed if you want a Discord alert posted when
+  a test-run result is marked "failed" or a test case newly becomes flaky (see
+  `/flaky-tests`). Leave unset to disable both alerts.
 
 `PORT` is set automatically by Render — don't set it manually in production.
 
