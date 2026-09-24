@@ -16,7 +16,7 @@ export function computeFlakinessForTestCase(testCaseId) {
       FROM test_run_results trr
       JOIN test_runs_v2 tr ON tr.id = trr.run_id
       WHERE trr.test_case_id = ?
-      ORDER BY tr.start_time ASC
+      ORDER BY tr.start_time ASC, trr.run_id ASC
     `)
     .all(testCaseId);
 

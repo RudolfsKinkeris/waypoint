@@ -10,6 +10,12 @@ function formatScore(score) {
   return `${Math.round(score * 100)}%`;
 }
 
+// Alphabetical order doesn't match real severity/priority order (e.g. "High"
+// sorts before "Low" only by coincidence, "Medium" doesn't sort between them
+// at all) — an explicit rank makes the sortable columns actually meaningful.
+const SEVERITY_RANK = { Critical: 0, Major: 1, Minor: 2, Trivial: 3 };
+const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
+
 // Splits a hypothesis string into short paragraphs at sentence boundaries, so a
 // dense paragraph the subagent wrote as one block reads as a few short ones
 // instead. A period/!/? followed by whitespace and a capital letter is treated
@@ -58,6 +64,7 @@ function FlakyTestsPage() {
       className: 'sortable',
       role: 'button',
       tabIndex: 0,
+      'aria-sort': sortBy === column ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none',
       onClick: () => toggleSort(column),
       onKeyDown: (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -88,6 +95,9 @@ function FlakyTestsPage() {
       <div className="test-cases-page">
         <h1>Flaky Tests</h1>
         <p className="error-banner">{error}</p>
+        <button className="secondary" onClick={load}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -112,6 +122,8 @@ function FlakyTestsPage() {
   const sortedAll = data.slice().sort((a, b) => {
     const dir = sortDir === 'asc' ? 1 : -1;
     if (sortBy === 'flakiness_score') return (a.flakiness_score - b.flakiness_score) * dir;
+    if (sortBy === 'severity') return (SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]) * dir;
+    if (sortBy === 'priority') return (PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) * dir;
     return String(a[sortBy]).localeCompare(String(b[sortBy])) * dir;
   });
 
@@ -138,7 +150,11 @@ function FlakyTestsPage() {
           </div>
         </details>
       </div>
-      {error && <p className="error-banner">{error} — showing the last successfully loaded data.</p>}
+      {error && (
+        <p className="error-banner" role="status">
+          {error} — showing the last successfully loaded data.
+        </p>
+      )}
 
       <h2>Top Flaky Tests</h2>
       {leaderboard.length === 0 ? (
@@ -168,7 +184,7 @@ function FlakyTestsPage() {
                     splitIntoSentences(t.hypothesis).map((sentence, i) => <p key={i}>{sentence}</p>)
                   ) : (
                     <span className="flaky-hypothesis-pending">
-                      Analysis pending — run <code>/analyze-flaky-tests</code>
+                      Analysis pending — ask Claude Code to run <code>/analyze-flaky-tests</code> to generate one
                     </span>
                   )}
                 </td>
