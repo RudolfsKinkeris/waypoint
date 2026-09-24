@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchReport, exportReportHtmlUrl, printReportHtmlUrl } from '../api/reports-api.js';
 import ResultBadge from '../components/ResultBadge.jsx';
 
 function formatDate(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString(undefined, {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -19,26 +21,83 @@ function ReportDetailPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const latestRequestId = useRef(0);
 
   useEffect(() => {
     setLoading(true);
+    const requestId = ++latestRequestId.current;
     fetchReport(id)
       .then((data) => {
+        if (requestId !== latestRequestId.current) return; // navigated to a different report meanwhile
         setReport(data);
         setError(null);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (requestId === latestRequestId.current) setError(err.message);
+      })
+      .finally(() => {
+        if (requestId === latestRequestId.current) setLoading(false);
+      });
   }, [id]);
 
-  if (loading && !report) return <div className="test-cases-page">Loading...</div>;
+  // A plain <a href> download would, on failure, navigate the whole app away
+  // to the raw JSON error response instead of just failing the download —
+  // fetching it ourselves keeps the failure contained to an inline message.
+  async function handleDownloadHtml() {
+    setActionError(null);
+    try {
+      const res = await fetch(exportReportHtmlUrl(report.id));
+      if (!res.ok) {
+        let message = 'Download failed. Please try again.';
+        try {
+          const body = await res.json();
+          if (body?.error) message = body.error;
+        } catch {
+          // Response wasn't JSON — keep the generic message.
+        }
+        throw new Error(message);
+      }
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const filenameMatch = /filename="([^"]+)"/.exec(disposition);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filenameMatch ? filenameMatch[1] : `report-${report.id}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      setActionError(err.message);
+    }
+  }
+
+  function handlePrint() {
+    setActionError(null);
+    const win = window.open(printReportHtmlUrl(report.id), '_blank', 'noopener,noreferrer');
+    if (!win) {
+      setActionError('Pop-up blocked — allow pop-ups for this site, or use Download HTML instead.');
+    }
+  }
+
+  if (loading && !report) {
+    return (
+      <div className="test-cases-page" aria-live="polite">
+        Loading...
+      </div>
+    );
+  }
   if (error) {
     return (
       <div className="test-cases-page">
         <Link to="/reports" className="link-button">
           &larr; Back to Reports
         </Link>
-        <p className="error-banner">{error}</p>
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
       </div>
     );
   }
@@ -58,17 +117,20 @@ function ReportDetailPage() {
           </p>
         </div>
         <div className="row-actions">
-          <a className="secondary" href={exportReportHtmlUrl(report.id)}>
+          <button className="secondary" onClick={handleDownloadHtml}>
             Download HTML
-          </a>
-          <button
-            className="secondary"
-            onClick={() => window.open(printReportHtmlUrl(report.id), '_blank')}
-          >
+          </button>
+          <button className="secondary" onClick={handlePrint} aria-label="Print or save as PDF (opens in a new tab)">
             Print / Save as PDF
           </button>
         </div>
       </div>
+
+      {actionError && (
+        <p className="error-banner" role="alert">
+          {actionError}
+        </p>
+      )}
 
       <div className="metric-cards">
         <div className="metric-card">
@@ -100,15 +162,21 @@ function ReportDetailPage() {
           </tr>
         </thead>
         <tbody>
-          {report.results.map((result, index) => (
-            <tr key={index}>
-              <td>{result.title}</td>
-              <td>{result.severity}</td>
-              <td>{result.priority}</td>
-              <td><ResultBadge value={result.result} /></td>
-              <td>{result.notes || '—'}</td>
+          {report.results.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="empty-cell">No results in this report.</td>
             </tr>
-          ))}
+          ) : (
+            report.results.map((result, index) => (
+              <tr key={index}>
+                <td>{result.title}</td>
+                <td>{result.severity}</td>
+                <td>{result.priority}</td>
+                <td><ResultBadge value={result.result} /></td>
+                <td>{result.notes || '—'}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

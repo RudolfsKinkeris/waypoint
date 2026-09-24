@@ -343,31 +343,42 @@ export function handleListReports(req, res) {
 }
 
 export function handleGetReport(req, res) {
-  const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(req.params.id);
-  if (!row) {
-    return res.status(404).json({ success: false, data: null, error: 'Report not found' });
+  try {
+    const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(req.params.id);
+    if (!row) {
+      return res.status(404).json({ success: false, data: null, error: 'Report not found' });
+    }
+    res.json({ success: true, data: parseReportRow(row), error: null });
+  } catch (err) {
+    res.status(500).json({ success: false, data: null, error: err.message });
   }
-  res.json({ success: true, data: parseReportRow(row), error: null });
 }
 
 export function handleExportReportHtml(req, res) {
-  const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(req.params.id);
-  if (!row) {
-    return res.status(404).json({ success: false, data: null, error: 'Report not found' });
-  }
+  try {
+    const row = db.prepare('SELECT * FROM reports WHERE id = ?').get(req.params.id);
+    if (!row) {
+      return res.status(404).json({ success: false, data: null, error: 'Report not found' });
+    }
 
-  const report = parseReportRow(row);
-  const autoPrint = req.query.print === '1';
-  const html = buildReportHtml(report, { autoPrint });
-  const filename = `report-${report.id}-${report.suite_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.html`;
+    const report = parseReportRow(row);
+    const autoPrint = req.query.print === '1';
+    const html = buildReportHtml(report, { autoPrint });
+    const filename = `report-${report.id}-${report.suite_name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.html`;
 
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  // Printing needs the browser to render the file inline (in a tab) rather
-  // than saving it, so only the plain download request gets `attachment`.
-  if (!autoPrint) {
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    // Printing needs the browser to render the file inline (in a tab) rather
+    // than saving it, so only the plain download request gets `attachment`.
+    if (!autoPrint) {
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    }
+    res.send(html);
+  } catch (err) {
+    // Still the app's standard JSON shape, even though the success path here
+    // sends HTML — the client's download handler expects to be able to parse
+    // a failure response as JSON regardless of what the success path sends.
+    res.status(500).json({ success: false, data: null, error: err.message });
   }
-  res.send(html);
 }
 
 const router = Router();
