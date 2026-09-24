@@ -70,6 +70,7 @@ function TestCasesPage() {
       className: 'sortable',
       role: 'button',
       tabIndex: 0,
+      'aria-sort': sortBy === column ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none',
       onClick: () => toggleSort(column),
       onKeyDown: (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -98,18 +99,30 @@ function TestCasesPage() {
   async function handleDelete(id) {
     let message = 'Delete this test case?';
     try {
-      const { items } = await fetchSuites({ test_case_id: id });
-      if (items.length > 0) {
-        const names = items.map((s) => s.name).join(', ');
-        message = `This test case is used in ${items.length} suite(s): ${names}. Deleting it will remove it from those suites too. Continue?`;
+      const { items: usedInSuites } = await fetchSuites({ test_case_id: id });
+      if (usedInSuites.length > 0) {
+        const names = usedInSuites.map((s) => s.name).join(', ');
+        message = `This test case is used in ${usedInSuites.length} suite(s): ${names}. Deleting it will remove it from those suites too. Continue?`;
       }
     } catch {
-      // If the usage check itself fails, fall back to the generic confirm rather than blocking deletion.
+      // The usage check itself failed — say so rather than silently presenting
+      // the generic message as if there's definitely no usage to worry about.
+      message = "Couldn't verify whether this test case is used in any suites. Delete anyway?";
     }
 
     if (!window.confirm(message)) return;
-    await deleteTestCase(id);
-    load();
+    try {
+      await deleteTestCase(id);
+      // Deleting the only item on a page beyond the first would otherwise
+      // reload that now-empty page instead of falling back to one with data.
+      if (items.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        load();
+      }
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   // Pulls every page of the currently active search/status filter (not just

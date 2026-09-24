@@ -6,8 +6,16 @@ function TestCaseViewModal({ testCase, onClose }) {
   const modalRef = useModalA11y(onClose);
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h2>{testCase.title}</h2>
+      <div
+        className="modal"
+        ref={modalRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="test-case-view-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="test-case-view-title">{testCase.title}</h2>
 
         <div className="view-badges">
           <SeverityBadge value={testCase.severity} />

@@ -30,6 +30,7 @@ function toFormState(testCase) {
 function TestCaseFormModal({ initialValue, onSave, onClose }) {
   const [form, setForm] = useState(initialValue ? toFormState(initialValue) : EMPTY_FORM);
   const [errors, setErrors] = useState({});
+  const [saveError, setSaveError] = useState(null);
   const [saving, setSaving] = useState(false);
   const modalRef = useModalA11y(onClose);
 
@@ -65,6 +66,7 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
     if (Object.keys(errs).length) return;
 
     setSaving(true);
+    setSaveError(null);
     try {
       await onSave({
         title: form.title.trim(),
@@ -75,6 +77,8 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
         priority: form.priority,
         status: form.status,
       });
+    } catch (err) {
+      setSaveError(err.message);
     } finally {
       setSaving(false);
     }
@@ -82,14 +86,24 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h2>{initialValue ? 'Edit Test Case' : 'Add Test Case'}</h2>
+      <div
+        className="modal"
+        ref={modalRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="test-case-form-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="test-case-form-title">{initialValue ? 'Edit Test Case' : 'Add Test Case'}</h2>
+        {saveError && <p className="error-banner">{saveError}</p>}
         <form onSubmit={handleSubmit}>
           <label className="field">
             Title *
             <input
               type="text"
               value={form.title}
+              aria-required="true"
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
           </label>
@@ -109,12 +123,17 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
             {form.steps.map((step, i) => (
               <div className="step-row" key={i}>
                 <span className="step-number">{i + 1}.</span>
-                <input type="text" value={step} onChange={(e) => updateStep(i, e.target.value)} />
+                <input
+                  type="text"
+                  value={step}
+                  aria-label={`Step ${i + 1}`}
+                  onChange={(e) => updateStep(i, e.target.value)}
+                />
                 <button
                   type="button"
                   className="icon-button"
                   onClick={() => removeStep(i)}
-                  aria-label="Remove step"
+                  aria-label={`Remove step ${i + 1}`}
                 >
                   ✕
                 </button>
@@ -131,6 +150,7 @@ function TestCaseFormModal({ initialValue, onSave, onClose }) {
             <textarea
               rows={2}
               value={form.expected_result}
+              aria-required="true"
               onChange={(e) => setForm({ ...form, expected_result: e.target.value })}
             />
           </label>

@@ -12,6 +12,7 @@
   --app-accent: #7761d1;
   --brand-mint-tint: #c4eee3;
   --brand-coral: #f38868;
+  --app-error: #b3261e;
   --skeleton-base: #eceff1;
   --skeleton-highlight: #f5f5f5;
 }
@@ -32,6 +33,7 @@
     --app-border: #686d73;
     --app-accent: #9581e4;
     --brand-mint-tint: #235c4e;
+    --app-error: #f2998f;
     --skeleton-base: #2a2b2d;
     --skeleton-highlight: #35363a;
   }
@@ -45,6 +47,7 @@
   --app-border: #686d73;
   --app-accent: #9581e4;
   --brand-mint-tint: #235c4e;
+  --app-error: #f2998f;
   --skeleton-base: #2a2b2d;
   --skeleton-highlight: #35363a;
 }
@@ -293,20 +296,28 @@ textarea {
   user-select: none;
 }
 
+/* These pastel row backgrounds don't shift with theme (same as the badge
+   system), so their text needs an explicit, always-dark color rather than
+   inheriting var(--app-text) — which goes near-white in dark mode and would
+   be nearly invisible against a background that stays light either way. */
 .row-status-passed {
   background: #b7e4c7;
+  color: #26203c;
 }
 
 .row-status-failed {
   background: #fce8e6;
+  color: #26203c;
 }
 
 .row-status-draft {
   background: #fdf6d8;
+  color: #26203c;
 }
 
 .row-status-ready {
   background: #e3f6e8;
+  color: #26203c;
 }
 
 .empty-cell {
@@ -577,7 +588,7 @@ textarea {
 }
 
 .field-error {
-  color: #b3261e;
+  color: var(--app-error);
   font-size: 0.85rem;
   margin: -0.6rem 0 1rem;
 }
@@ -1066,7 +1077,7 @@ a.metric-hint {
 }
 
 .import-error-text {
-  color: #b3261e;
+  color: var(--app-error);
   font-size: 0.82rem;
 }
 
@@ -1231,7 +1242,8 @@ a.metric-hint {
   .page-header,
   .toolbar,
   .form-row,
-  .modal-actions {
+  .modal-actions,
+  .row-actions {
     flex-wrap: wrap;
   }
 
