@@ -10,6 +10,18 @@ function formatScore(score) {
   return `${Math.round(score * 100)}%`;
 }
 
+// Splits a hypothesis string into short paragraphs at sentence boundaries, so a
+// dense paragraph the subagent wrote as one block reads as a few short ones
+// instead. A period/!/? followed by whitespace and a capital letter is treated
+// as a sentence break — good enough for this use case without mangling
+// abbreviations like "e.g." (lowercase letter follows, so it isn't split).
+function splitIntoSentences(text) {
+  return text
+    .split(/(?<=[.?!])\s+(?=[A-Z])/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
 function FlakyTestsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,20 +119,26 @@ function FlakyTestsPage() {
 
   return (
     <div className="test-cases-page">
-      <h1>Flaky Tests</h1>
-      {error && <p className="error-banner">{error} — showing the last successfully loaded data.</p>}
-
-      <div className="view-section flaky-insight-note">
-        <h3>What this data shows</h3>
-        <p>
-          {flakyCount} of {data.length} test case{data.length === 1 ? '' : 's'} with run history shows a real
-          flip pattern (pass, then fail, then pass again); the rest are either consistently stable or
-          consistently broken, which is a different problem from flakiness. With real production data, the
-          next useful step would be recency-weighting the score (a test that just started flipping this week
-          matters more than one that flipped once months ago), correlating flips with environment or browser
-          notes, and flagging duration outliers as a separate signal from pass/fail flips.
-        </p>
+      <div className="title-with-info">
+        <h1>Flaky Tests</h1>
+        <details className="info-popover">
+          <summary className="info-icon-button" aria-label="What this data shows">
+            i
+          </summary>
+          <div className="info-popover-content">
+            <h3>What this data shows</h3>
+            <p>
+              {flakyCount} of {data.length} test case{data.length === 1 ? '' : 's'} with run history shows a
+              real flip pattern (pass, then fail, then pass again); the rest are either consistently stable or
+              consistently broken, which is a different problem from flakiness. With real production data, the
+              next useful step would be recency-weighting the score (a test that just started flipping this
+              week matters more than one that flipped once months ago), correlating flips with environment or
+              browser notes, and flagging duration outliers as a separate signal from pass/fail flips.
+            </p>
+          </div>
+        </details>
       </div>
+      {error && <p className="error-banner">{error} — showing the last successfully loaded data.</p>}
 
       <h2>Top Flaky Tests</h2>
       {leaderboard.length === 0 ? (
@@ -145,9 +163,9 @@ function FlakyTestsPage() {
                 <td><SeverityBadge value={t.severity} /></td>
                 <td>{formatScore(t.flakiness_score)}</td>
                 <td><FlakinessSparkline resultSequence={t.result_sequence} /></td>
-                <td>
+                <td className="hypothesis-cell">
                   {t.hypothesis ? (
-                    t.hypothesis
+                    splitIntoSentences(t.hypothesis).map((sentence, i) => <p key={i}>{sentence}</p>)
                   ) : (
                     <span className="flaky-hypothesis-pending">
                       Analysis pending — run <code>/analyze-flaky-tests</code>

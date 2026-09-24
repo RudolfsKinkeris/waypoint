@@ -20,7 +20,7 @@ function getRunWithResults(runId) {
 
   const results = db
     .prepare(`
-      SELECT trr.*, tc.title, tc.severity, tc.priority
+      SELECT trr.*, tc.title, tc.severity, tc.priority, tc.steps
       FROM test_run_results trr
       JOIN test_cases tc ON tc.id = trr.test_case_id
       WHERE trr.run_id = ?
@@ -28,7 +28,10 @@ function getRunWithResults(runId) {
     `)
     .all(runId);
 
-  return { ...run, results: results.map((r) => ({ ...r, alert_sent: !!r.alert_sent })) };
+  return {
+    ...run,
+    results: results.map((r) => ({ ...r, alert_sent: !!r.alert_sent, steps: JSON.parse(r.steps) })),
+  };
 }
 
 function recomputeRunCounts(runId) {
@@ -46,7 +49,20 @@ function recomputeRunCounts(runId) {
     .run(passCount, failCount, skipCount, status, endTime, runId);
 }
 
-async function sendDiscordFailureAlert({ runId, testCaseId, notes }) {
+// Builds the shared "Notes:" block both Discord alerts use: which step the
+// failure happened on (if one was recorded) plus the tester's short summary of
+// what exactly failed.
+function formatFailureNotesBlock({ failedStep, notes }) {
+  // failedStep already reads as "Step N: <step text>" (that's the exact string
+  // the UI's step picker stores), so it's used as its own line rather than
+  // wrapped in a redundant second "Step:" label.
+  const lines = [];
+  if (failedStep && failedStep.trim()) lines.push(failedStep.trim());
+  lines.push(notes && notes.trim() ? notes.trim() : 'No notes provided.');
+  return lines.join('\n');
+}
+
+async function sendDiscordFailureAlert({ runId, testCaseId, notes, failedStep }) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
     console.warn('DISCORD_WEBHOOK_URL is not set — skipping failure alert.');
@@ -57,7 +73,7 @@ async function sendDiscordFailureAlert({ runId, testCaseId, notes }) {
   const runLink = `${APP_BASE_URL}/test-runs/${runId}`;
   const content = [
     `🔴 **Test Failed:** ${testCase ? testCase.title : `Test case #${testCaseId}`}`,
-    `**Notes:** ${notes && notes.trim() ? notes.trim() : '_No notes provided._'}`,
+    `**Notes:**\n${formatFailureNotesBlock({ failedStep, notes })}`,
     `**Run:** ${runLink}`,
   ].join('\n');
 
@@ -82,6 +98,10 @@ async function sendDiscordFlakyAlert({ testCaseId, flakinessScore }) {
   }
 
   const testCase = db.prepare('SELECT title FROM test_cases WHERE id = ?').get(testCaseId);
+  // No Notes section here — a test only newly crosses into flaky right after a
+  // result is recorded, and when that result is a failure, sendDiscordFailureAlert
+  // already posted the step + notes for it moments earlier. Repeating it here
+  // would just be a duplicate message.
   const flakyTestsLink = `${APP_BASE_URL}/flaky-tests`;
   const content = [
     `⚠️ **New Flaky Test Detected:** ${testCase ? testCase.title : `Test case #${testCaseId}`}`,
@@ -211,7 +231,7 @@ export function handleCreateRun(req, res) {
 
 export async function handleUpdateRunResult(req, res) {
   const { id: runId, resultId } = req.params;
-  const { result, duration_ms: durationMs, notes } = req.body;
+  const { result, duration_ms: durationMs, notes, failed_step: failedStepInput } = req.body;
 
   if (!VALID_RESULTS.includes(result)) {
     return res.status(400).json({ success: false, data: null, error: `result must be one of ${VALID_RESULTS.join(', ')}` });
@@ -224,11 +244,15 @@ export async function handleUpdateRunResult(req, res) {
 
   const now = new Date().toISOString();
   const failedAt = result === 'failed' ? now : existing.failed_at;
+  // Mirrors failed_at's persistence: only set on a failing result, and left as
+  // whatever it already was otherwise, so a row that later passes still keeps a
+  // record of the step it last failed on.
+  const failedStep = result === 'failed' ? (failedStepInput !== undefined ? failedStepInput : existing.failed_step) : existing.failed_step;
 
   try {
     db.prepare(`
       UPDATE test_run_results
-      SET result = @result, duration_ms = @duration_ms, notes = @notes, failed_at = @failed_at
+      SET result = @result, duration_ms = @duration_ms, notes = @notes, failed_at = @failed_at, failed_step = @failed_step
       WHERE id = @id
     `).run({
       id: resultId,
@@ -236,10 +260,16 @@ export async function handleUpdateRunResult(req, res) {
       duration_ms: durationMs ?? existing.duration_ms ?? null,
       notes: notes ?? existing.notes ?? null,
       failed_at: failedAt,
+      failed_step: failedStep,
     });
 
     if (result === 'failed') {
-      const alertSent = await sendDiscordFailureAlert({ runId, testCaseId: existing.test_case_id, notes: notes ?? existing.notes });
+      const alertSent = await sendDiscordFailureAlert({
+        runId,
+        testCaseId: existing.test_case_id,
+        notes: notes ?? existing.notes,
+        failedStep,
+      });
       db.prepare('UPDATE test_run_results SET alert_sent = ? WHERE id = ?').run(alertSent ? 1 : 0, resultId);
     }
 

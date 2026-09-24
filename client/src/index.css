@@ -909,13 +909,98 @@ a.metric-hint {
   margin-top: 0.75rem;
 }
 
+/* Test run detail page */
+
+.failed-step-select {
+  min-width: 200px;
+  max-width: 280px;
+}
+
 /* Flaky Tests page */
 
-.flaky-insight-note {
+.title-with-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.title-with-info h1 {
+  margin: 0;
+}
+
+.info-popover {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-style: italic;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.info-icon-button::-webkit-details-marker {
+  display: none;
+}
+
+.info-icon-button:hover {
+  background: var(--brand-mint-tint);
+}
+
+.info-popover-content {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 20;
+  width: min(420px, 80vw);
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+/* Shown via CSS on hover regardless of the native [open] state, and also
+   shown once clicked (native <details> toggles [open] on summary click) — so
+   the same control supports both hover-to-peek and click-to-pin. */
+.info-popover:hover .info-popover-content,
+.info-popover[open] .info-popover-content {
+  display: block;
+}
+
+.info-popover-content h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--app-text-secondary);
+  margin: 0 0 0.4rem;
+}
+
+.info-popover-content p {
+  margin: 0;
+}
+
+.hypothesis-cell p {
+  margin: 0 0 0.6rem;
+}
+
+.hypothesis-cell p:last-child {
+  margin-bottom: 0;
 }
 
 .flaky-sparkline {

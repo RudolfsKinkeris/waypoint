@@ -21,6 +21,7 @@ function TestRunDetailPage() {
   const navigate = useNavigate();
   const [run, setRun] = useState(null);
   const [notesDraft, setNotesDraft] = useState({});
+  const [failedStepDraft, setFailedStepDraft] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
@@ -46,11 +47,19 @@ function TestRunDetailPage() {
     return notesDraft[result.id] ?? result.notes ?? '';
   }
 
+  function failedStepFor(result) {
+    return failedStepDraft[result.id] ?? result.failed_step ?? '';
+  }
+
   async function handleSetResult(result, outcome) {
     setActionError(null);
     setSavingId(result.id);
     try {
-      const updated = await updateRunResult(id, result.id, { result: outcome, notes: draftFor(result) });
+      const updated = await updateRunResult(id, result.id, {
+        result: outcome,
+        notes: draftFor(result),
+        failed_step: failedStepFor(result) || null,
+      });
       setRun(updated);
     } catch (err) {
       setActionError(err.message);
@@ -116,6 +125,7 @@ function TestRunDetailPage() {
           <tr>
             <th>Title</th>
             <th>Result</th>
+            <th>Failed Step</th>
             <th>Notes</th>
             <th aria-label="Actions" />
           </tr>
@@ -129,6 +139,24 @@ function TestRunDetailPage() {
                 {result.result === 'failed' && result.alert_sent && (
                   <span className="alert-sent-tag" role="img" aria-label="Discord alert sent" title="Discord alert sent"> 🔔</span>
                 )}
+              </td>
+              <td>
+                <select
+                  className="failed-step-select"
+                  aria-label={`Failed step for ${result.title}`}
+                  value={failedStepFor(result)}
+                  onChange={(e) => setFailedStepDraft({ ...failedStepDraft, [result.id]: e.target.value })}
+                >
+                  <option value="">— Not specified —</option>
+                  {result.steps.map((step, i) => {
+                    const label = `Step ${i + 1}: ${step}`;
+                    return (
+                      <option key={i} value={label}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
               </td>
               <td>
                 <input

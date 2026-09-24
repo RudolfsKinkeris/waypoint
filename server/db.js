@@ -99,6 +99,15 @@ db.exec(`
   )
 `);
 
+// No migration framework exists yet, and CREATE TABLE IF NOT EXISTS can't add a
+// column to a table that already exists — so this column addition is guarded by
+// checking PRAGMA table_info first, making it (like every block above) safe to
+// run unconditionally on every boot.
+const testRunResultsColumns = db.prepare("PRAGMA table_info(test_run_results)").all();
+if (!testRunResultsColumns.some((col) => col.name === 'failed_step')) {
+  db.exec('ALTER TABLE test_run_results ADD COLUMN failed_step TEXT');
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
