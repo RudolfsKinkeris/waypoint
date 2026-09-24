@@ -1,18 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 function HomePage() {
   const [message, setMessage] = useState('Loading...');
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setMessage('Loading...');
+    setFailed(false);
     let ignore = false;
 
     fetch('/api/hello')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
-        if (!ignore) setMessage(data.message);
+        if (ignore) return;
+        if (data.message) setMessage(data.message);
+        else throw new Error('Unexpected response from server');
       })
       .catch(() => {
-        if (!ignore) setMessage('Could not reach the server.');
+        if (ignore) return;
+        setMessage("Couldn't load the greeting from the server.");
+        setFailed(true);
       });
 
     return () => {
@@ -20,13 +30,20 @@ function HomePage() {
     };
   }, []);
 
+  useEffect(() => load(), [load]);
+
   return (
     <main className="test-cases-page">
       <div className="home-hero">
         <img src="/logo.svg" alt="" width="40" height="40" />
         <h1>Waypoint</h1>
       </div>
-      <p>{message}</p>
+      <p aria-live="polite">{message}</p>
+      {failed && (
+        <button className="secondary" onClick={load}>
+          Retry
+        </button>
+      )}
     </main>
   );
 }
