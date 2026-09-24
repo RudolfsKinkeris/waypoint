@@ -17,6 +17,7 @@ function SuiteDetailPage() {
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -36,29 +37,37 @@ function SuiteDetailPage() {
   useEffect(() => {
     fetchTestCases({ pageSize: 100 })
       .then((data) => setAllTestCases(data.items))
-      .catch(() => setAllTestCases([]));
+      .catch((err) => setActionError(`Couldn't load test cases to add: ${err.message}`));
   }, []);
 
   async function handleAddCase(e) {
     e.preventDefault();
-    if (!selectedCaseId) return;
+    if (!selectedCaseId || busy) return;
     setActionError(null);
+    setBusy(true);
     try {
       await addSuiteCase(id, Number(selectedCaseId));
       setSelectedCaseId('');
       load();
     } catch (err) {
       setActionError(err.message);
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function handleRemoveCase(testCaseId) {
+  async function handleRemoveCase(testCaseId, title) {
+    if (busy) return;
+    if (!window.confirm(`Remove "${title}" from this suite?`)) return;
     setActionError(null);
+    setBusy(true);
     try {
       await removeSuiteCase(id, testCaseId);
       load();
     } catch (err) {
       setActionError(err.message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -80,17 +89,20 @@ function SuiteDetailPage() {
     }
   }
 
-  async function handleDrop(dropIndex) {
-    if (dragIndex === null || dragIndex === dropIndex) {
-      setDragIndex(null);
-      return;
-    }
+  // Shared by both the drag handle (desktop) and the Up/Down buttons (a
+  // touch-friendly fallback — native HTML5 drag-and-drop generally doesn't
+  // fire on mobile touchscreens, so reordering would otherwise be
+  // desktop-only). Guarded by `busy` so rapid taps (the exact scenario the
+  // buttons exist for) can't fire overlapping reorder requests built from
+  // different optimistic snapshots.
+  async function moveCase(fromIndex, toIndex) {
+    if (busy || fromIndex === toIndex || toIndex < 0 || toIndex >= suite.cases.length) return;
     const originalCases = suite.cases;
     const reordered = [...originalCases];
-    const [moved] = reordered.splice(dragIndex, 1);
-    reordered.splice(dropIndex, 0, moved);
-    setDragIndex(null);
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
     setActionError(null);
+    setBusy(true);
     setSuite({ ...suite, cases: reordered });
     try {
       await reorderSuiteCases(id, reordered.map((c) => c.id));
@@ -98,7 +110,19 @@ function SuiteDetailPage() {
     } catch (err) {
       setSuite({ ...suite, cases: originalCases });
       setActionError(err.message);
+    } finally {
+      setBusy(false);
     }
+  }
+
+  async function handleDrop(dropIndex) {
+    if (dragIndex === null) {
+      setDragIndex(null);
+      return;
+    }
+    const fromIndex = dragIndex;
+    setDragIndex(null);
+    await moveCase(fromIndex, dropIndex);
   }
 
   if (loading && !suite) return <div className="test-cases-page">Loading...</div>;
@@ -120,7 +144,7 @@ function SuiteDetailPage() {
             Feature: <strong>{suite.feature}</strong> &nbsp;·&nbsp; Status: <SuiteStatusBadge value={suite.status} />
           </p>
         </div>
-        <button className="primary" onClick={handleNewRun}>
+        <button className="primary" onClick={handleNewRun} disabled={suite.cases.length === 0}>
           + New Run
         </button>
       </div>
@@ -158,7 +182,28 @@ function SuiteDetailPage() {
                 <td><PriorityBadge value={tc.priority} /></td>
                 <td>{tc.status}</td>
                 <td className="row-actions">
-                  <button className="icon-button" onClick={() => handleRemoveCase(tc.id)} aria-label="Remove from suite">
+                  <button
+                    className="icon-button"
+                    onClick={() => moveCase(index, index - 1)}
+                    disabled={busy || index === 0}
+                    aria-label={`Move "${tc.title}" up`}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="icon-button"
+                    onClick={() => moveCase(index, index + 1)}
+                    disabled={busy || index === suite.cases.length - 1}
+                    aria-label={`Move "${tc.title}" down`}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    className="icon-button"
+                    onClick={() => handleRemoveCase(tc.id, tc.title)}
+                    disabled={busy}
+                    aria-label={`Remove "${tc.title}" from suite`}
+                  >
                     ✕
                   </button>
                 </td>
@@ -173,11 +218,11 @@ function SuiteDetailPage() {
           <option value="">Select a test case to add...</option>
           {availableToAdd.map((tc) => (
             <option key={tc.id} value={tc.id}>
-              {tc.title}
+              {tc.title} (#{tc.id})
             </option>
           ))}
         </select>
-        <button type="submit" className="primary" disabled={!selectedCaseId}>
+        <button type="submit" className="primary" disabled={!selectedCaseId || busy}>
           + Add Case
         </button>
       </form>
