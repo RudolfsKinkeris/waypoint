@@ -659,6 +659,14 @@ textarea {
   margin-bottom: 0.3rem;
 }
 
+/* Inline prose links (e.g. HomePage's feature list) would otherwise fall
+   back to the browser's default blue/purple visited-link colors instead of
+   the app's own accent. */
+.view-section a,
+.view-section a:visited {
+  color: var(--app-accent);
+}
+
 /* Dashboard */
 
 .metric-cards {

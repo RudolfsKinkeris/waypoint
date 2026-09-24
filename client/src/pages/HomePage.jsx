@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 function HomePage() {
   const [message, setMessage] = useState('Loading...');
@@ -44,6 +45,33 @@ function HomePage() {
           Retry
         </button>
       )}
+
+      <div className="view-section">
+        <h3>What you can do</h3>
+        <ul>
+          <li>
+            Write <Link to="/test-cases">test cases</Link> and group them into <Link to="/test-suites">suites</Link>.
+          </li>
+          <li>Run a suite and record pass/fail/skip results as you go.</li>
+          <li>File a <Link to="/bugs">bug</Link> straight from a failed test, with severity and priority.</li>
+          <li>
+            Track <Link to="/flaky-tests">flaky tests</Link> automatically, each with an AI-written guess at the
+            cause.
+          </li>
+          <li>Generate a shareable <Link to="/reports">report</Link> after any run.</li>
+        </ul>
+      </div>
+
+      <div className="view-section">
+        <h3>What you get</h3>
+        <ul>
+          <li>
+            One <Link to="/dashboard">dashboard</Link> showing pass rate, open bugs, and flaky tests at a glance.
+          </li>
+          <li>A Discord alert the moment a test starts failing or turns flaky.</li>
+          <li>A record of every run, so "did this ever pass?" has an actual answer.</li>
+        </ul>
+      </div>
     </main>
   );
 }
